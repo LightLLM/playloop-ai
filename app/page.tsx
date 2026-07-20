@@ -524,7 +524,7 @@ function Metroidvania({
         <span>CORE {bossHp > 0 ? `LOCKED · ${bossHp} HP` : "OPEN"}</span>
       </div>
       <div
-        className="engine-world metro-world"
+        className={`engine-world metro-world ${spec.theme === "cyber" ? "curated-neon" : ""}`}
         style={
           {
             "--p1": spec.art.palette[0],
@@ -563,7 +563,11 @@ function Metroidvania({
             {bossHp}
           </div>
           <div className="metro-player" style={{ left: `${x / 2.6}%` }}>
-            <PixelHero avatar={spec.art.avatar} />
+            {spec.theme === "cyber" ? (
+              <div className="metro-curated-runner" aria-label="Neon Sentinel" />
+            ) : (
+              <PixelHero avatar={spec.art.avatar} />
+            )}
           </div>
         </div>
       </div>
