@@ -1439,11 +1439,15 @@ function AgentBuildWorkspace({
   progress,
   compiler,
   events,
+  assetStatus,
+  sandboxStatus,
 }: {
   spec: GameSpec | null;
   progress: number;
   compiler: string;
   events: BuildEvent[];
+  assetStatus: string;
+  sandboxStatus: string;
 }) {
   return (
     <section className="agent-workspace">
@@ -1494,6 +1498,14 @@ function AgentBuildWorkspace({
                   .join("\n")
               : "// Waiting for server events…"}
           </pre>
+        </div>
+        <div className="production-gates" aria-live="polite">
+          <span className={assetStatus === "ready" ? "passed" : ""}>
+            ARTWORK · {assetStatus.toUpperCase()}
+          </span>
+          <span className={sandboxStatus === "passed" ? "passed" : ""}>
+            PLAYABILITY QA · {sandboxStatus.toUpperCase()}
+          </span>
         </div>
       </div>
       <div className="preview-pane">
@@ -1648,9 +1660,13 @@ export default function Home() {
                   }
                 : old,
             );
+          setStep("ready");
         }
       } catch {
-        if (!cancelled) setSandboxStatus("failed");
+        if (!cancelled) {
+          setSandboxStatus("failed");
+          setStep("ready");
+        }
       }
     })();
     return () => {
@@ -1816,7 +1832,7 @@ export default function Home() {
             setSpec(made);
             setCompiler(event.artifact.compiler || "deterministic");
             if (event.artifact.build) setBuildArtifact(event.artifact.build);
-            setTimeout(() => setStep("ready"), 700);
+            else setTimeout(() => setStep("ready"), 700);
           }
         }
       }
@@ -2051,6 +2067,8 @@ export default function Home() {
           progress={progress}
           compiler={compiler}
           events={buildEvents}
+          assetStatus={assetStatus}
+          sandboxStatus={sandboxStatus}
         />
       )}
       {step === "ready" && spec && (

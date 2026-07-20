@@ -655,6 +655,31 @@
 .art-runtime.has-generated-hero .engine-sprite.hero > i {
   display: none;
 }
+.art-runtime.has-generated-hero .world-player .engine-sprite.hero {
+  width: 64px;
+  height: 72px;
+  transform: translate(-17px, -24px);
+}
+.production-gates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid #263140;
+}
+.production-gates span {
+  padding: 8px 10px;
+  border: 1px solid #344152;
+  border-radius: 7px;
+  color: #9ba9b8;
+  font: 800 9px var(--font-geist-mono);
+  letter-spacing: .07em;
+}
+.production-gates span.passed {
+  border-color: #baff4a88;
+  color: #c9ff54;
+  background: #c9ff540b;
+}
 .genre-hud {
   height: 40px;
   display: flex;

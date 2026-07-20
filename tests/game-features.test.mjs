@@ -5,6 +5,10 @@ const page = await readFile(
   new URL("../app/page.tsx", import.meta.url),
   "utf8",
 );
+const css = await readFile(
+  new URL("../app/engine.css", import.meta.url),
+  "utf8",
+);
 const api = await readFile(
   new URL("../app/api/games/route.ts", import.meta.url),
   "utf8",
@@ -75,6 +79,22 @@ test("build screen exposes agent execution beside live preview", () => {
     "GAME PREVIEW",
   ])
     assert.match(page, new RegExp(feature));
+});
+
+test("finished preview waits for artwork and isolated QA terminal results", () => {
+  assert.match(page, /ARTWORK · \{assetStatus\.toUpperCase\(\)\}/);
+  assert.match(page, /PLAYABILITY QA · \{sandboxStatus\.toUpperCase\(\)\}/);
+  assert.match(page, /setSandboxStatus\(response\.ok \? "passed"/);
+  assert.match(page, /setStep\("ready"\)/);
+  assert.doesNotMatch(
+    page,
+    /if \(event\.artifact\.build\) setBuildArtifact\(event\.artifact\.build\);\s*setTimeout\(\(\) => setStep\("ready"\)/,
+  );
+});
+
+test("prompt-generated hero art replaces the top-down fallback character", () => {
+  assert.match(page, /has-generated-hero/);
+  assert.match(css, /\.world-player \.engine-sprite\.hero/);
 });
 test("creator approves a structured plan before the build starts", () => {
   for (const feature of [
