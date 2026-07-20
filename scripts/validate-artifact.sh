@@ -25,6 +25,17 @@ import { pathToFileURL } from "node:url";
 
 const [workerPath, hostingPath] = process.argv.slice(2);
 JSON.parse(await readFile(hostingPath, "utf8"));
+const source = await readFile(workerPath, "utf8");
+
+// Cloudflare's runtime-only URL scheme cannot be imported by stock Node.
+// Validate the emitted ESM contract statically in that case; dynamically
+// import ordinary workers so their default.fetch shape is still exercised.
+if (source.includes('from "cloudflare:')) {
+  if (!/export\s*\{[^}]*\bas default\b[^}]*\}/s.test(source)) {
+    throw new Error("dist/server/index.js must export a default Cloudflare Worker");
+  }
+  process.exit(0);
+}
 
 const workerUrl = pathToFileURL(workerPath);
 workerUrl.searchParams.set("sites-validation", `${process.pid}-${Date.now()}`);
