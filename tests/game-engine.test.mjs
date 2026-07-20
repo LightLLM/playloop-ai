@@ -138,6 +138,26 @@ test("advanced genres compile their defining mechanics", () => {
   assert.equal(shooter.boss.hp, 8);
 });
 
+test("Neon Sentinel compiles a data-driven movement combat and object contract", () => {
+  const spec = compileGameSpec(
+    "Neon Sentinel is a cyberpunk side-scrolling action platformer with Metroidvania-lite exploration, double jump, dash, wall jump, energy blade, plasma blast, gates, crates, lasers, drones, scrapper bots and turrets",
+  );
+  assert.equal(spec.template, "metroidvania");
+  assert.equal(spec.theme, "cyber");
+  assert.ok(spec.movement.dashSpeed > spec.movement.runSpeed);
+  assert.ok(spec.movement.invulnerabilityMs > spec.movement.dashDurationMs);
+  assert.deepEqual(spec.combat.meleeCombo, [1, 1, 2]);
+  assert.equal(spec.combat.maxEnergy, 100);
+  assert.ok(spec.platforms.length >= 8);
+  assert.ok(spec.hazards.some((item) => item.type === "laser"));
+  assert.ok(spec.interactables.some((item) => item.type === "pressure_plate"));
+  assert.ok(spec.interactables.some((item) => item.type === "breakable_crate"));
+  assert.deepEqual(
+    new Set(spec.enemies.map((enemy) => enemy.type)),
+    new Set(["patrol_drone", "scrapper_bot", "turret"]),
+  );
+});
+
 test("new genre specs contain playable defining mechanics", () => {
   const snake = compileGameSpec("A snake game that eats glowing fruit");
   const blocks = compileGameSpec("A Tetris falling blocks challenge");

@@ -98,6 +98,23 @@ test("generated art creates a new immutable version and enters the Phaser runtim
       new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
     );
 });
+test("Neon Sentinel runtime uses reusable art and the advanced action state machine", () => {
+  for (const token of [
+    "/game-art/neon-sentinel/runner-atlas-v1.png",
+    "/game-art/neon-sentinel/sector-09-background-v1.png",
+    'key:"dash"',
+    "damagePlayer",
+    "melee(time:number)",
+    "plasmaEnergyCost",
+    "openGate",
+    "pressure_plate",
+    "breakable_crate",
+    "patrol_drone",
+    "scrapper_bot",
+    'kind==="turret"',
+    'hazard.type==="laser"',
+  ]) assert.ok(generator.includes(token), token);
+});
 test("account-owned achievements and high scores persist beyond browser storage", () => {
   for (const token of [
     "player_progress",
