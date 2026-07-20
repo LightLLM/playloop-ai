@@ -138,6 +138,20 @@ test("isolated QA launches every generated game and enforces the complete smoke 
   assert.match(generator, /mechanicContract/);
   assert.match(generator, /contract\.ready/);
   assert.match(generator, /contract\.mechanicCount/);
+  for (const state of [
+    "showIntro",
+    "startGame",
+    "togglePause",
+    "game.paused",
+    "game.resumed",
+    "PLAY AGAIN",
+  ])
+    assert.match(
+      generator,
+      new RegExp(state.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    );
+  assert.match(generator, /toBe\("menu"\)/);
+  assert.match(generator, /toBe\("paused"\)/);
 });
 test("immutable R2 art is hydrated into the isolated project without network access", () => {
   assert.match(generator, /assetRefs/);
