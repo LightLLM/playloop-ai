@@ -57,6 +57,11 @@ test("runtime dispatches advanced popular genres", () => {
   for (const template of ["metroidvania", "roguelike", "shooter"])
     assert.match(page, new RegExp(`spec\\.template\\s*===\\s*"${template}"`));
 });
+test("RPG fallback has a dedicated playable adapter", () => {
+  assert.match(page, /function RpgGame/);
+  assert.match(page, /spec\.template\s*===\s*"rpg"/);
+  assert.match(page, /game\s*=\s*<RpgGame/);
+});
 test("build screen exposes agent execution beside live preview", () => {
   for (const feature of [
     "AgentBuildWorkspace",
@@ -66,6 +71,7 @@ test("build screen exposes agent execution beside live preview", () => {
     "Art Agent",
     "Physics Agent",
     "QA Agent",
+    "Supervisor Agent",
     "GAME PREVIEW",
   ])
     assert.match(page, new RegExp(feature));

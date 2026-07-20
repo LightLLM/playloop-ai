@@ -174,6 +174,36 @@ function TopDown({
   );
 }
 
+function RpgGame({
+  spec,
+  onProgress,
+}: {
+  spec: GameSpec;
+  onProgress: (p: any) => void;
+}) {
+  const seed = spec.art.seed || 1;
+  const playable = {
+    ...spec,
+    obstacles: spec.obstacles || [
+      { x: 18, y: 31, w: 15, h: 10 },
+      { x: 48, y: 48, w: 18, h: 9 },
+      { x: 31, y: 72, w: 13, h: 8 },
+      { x: 72, y: 61, w: 11, h: 14 },
+    ],
+    collectibles: spec.collectibles || [
+      { x: 14 + (seed % 5), y: 25 },
+      { x: 78, y: 30 + (seed % 7) },
+      { x: 76, y: 78 },
+    ],
+    npc: spec.npc || {
+      x: 87,
+      y: 61,
+      name: spec.dialogue?.[0]?.speaker || "Mission guide",
+    },
+  };
+  return <TopDown spec={playable} onProgress={onProgress} />;
+}
+
 function Platformer({
   spec,
   onProgress,
@@ -1343,6 +1373,8 @@ function Runtime({
     game = <TennisGame spec={spec} onProgress={onProgress} />;
   else if (spec.template === "racing")
     game = <RacingGame spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "rpg")
+    game = <RpgGame spec={spec} onProgress={onProgress} />;
   else if (spec.template === "puzzle")
     game = <Puzzle spec={spec} onProgress={onProgress} />;
   else game = <TopDown spec={spec} onProgress={onProgress} />;
@@ -1395,6 +1427,11 @@ const agentPipeline = [
     name: "QA Agent",
     task: "Validating schema, reachability, controls, and completion",
     at: 88,
+  },
+  {
+    name: "Supervisor Agent",
+    task: "Comparing the finished game and artwork with the user's prompt",
+    at: 96,
   },
 ];
 function AgentBuildWorkspace({

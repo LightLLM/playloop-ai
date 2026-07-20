@@ -35,6 +35,49 @@ async function ensureBuildTables() {
   ).run();
 }
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function supervisePromptFidelity(prompt: string, spec: any) {
+  const normalized = prompt.toLowerCase();
+  const explicitTitle = (
+    prompt.match(
+      /\btitle\s*:\s*([A-Z][A-Za-z0-9' -]{2,60}(?::\s*[A-Z][A-Za-z0-9' -]{2,40})?)(?=\.|\n|$)/,
+    ) ||
+    prompt.match(
+      /^([A-Z][A-Za-z0-9' -]{2,55}:\s*[A-Z][A-Za-z0-9' -]{2,40})(?=\.)/,
+    )
+  )?.[1]?.trim();
+  const significant = [
+    ...new Set(
+      normalized
+        .replace(/[^a-z0-9 -]/g, " ")
+        .split(/\s+/)
+        .filter(
+          (word) =>
+            word.length >= 5 &&
+            !["create", "detailed", "game", "player", "using", "with", "from", "their", "about"].includes(word),
+        ),
+    ),
+  ].slice(0, 24);
+  const specText = JSON.stringify(spec).toLowerCase();
+  const artText = JSON.stringify(spec.art?.manifest || {}).toLowerCase();
+  const matchedTerms = significant.filter((term) => specText.includes(term));
+  const artTerms = significant.filter((term) => artText.includes(term));
+  const checks = {
+    title: !explicitTitle || spec.title.toLowerCase() === explicitTitle.toLowerCase(),
+    genre: spec.template === inferTemplate(prompt, "auto"),
+    promptIdentity: matchedTerms.length >= Math.min(5, significant.length),
+    artworkIdentity: artTerms.length >= Math.min(4, significant.length),
+    playableContract: validateGameSpec(spec).valid,
+  };
+  return {
+    passed: Object.values(checks).every(Boolean),
+    checks,
+    explicitTitle: explicitTitle || null,
+    matchedTerms: matchedTerms.slice(0, 10),
+    artTerms: artTerms.slice(0, 10),
+  };
+}
+
 export async function POST(request: Request) {
   const body = (await request.json()) as {
     prompt?: string;
@@ -232,6 +275,29 @@ export async function POST(request: Request) {
           );
           if (!previewCheck.valid)
             throw new Error(previewCheck.errors.join(", "));
+          await emit(
+            "Supervisor Agent",
+            "running",
+            "Comparing genre, title, mechanics, entities, and art direction with the creator's prompt.",
+            96,
+          );
+          let supervision = supervisePromptFidelity(prompt, spec);
+          if (!supervision.passed) {
+            spec = compileGameSpec(prompt, body.template || "auto");
+            validation = validateGameSpec(spec);
+            supervision = supervisePromptFidelity(prompt, spec);
+          }
+          if (!validation.valid || !supervision.passed)
+            throw new Error(
+              `Supervisor rejected prompt drift: ${JSON.stringify(supervision.checks)}`,
+            );
+          await emit(
+            "Supervisor Agent",
+            "completed",
+            "Verified that the playable contract and cohesive art manifest preserve the user's prompt.",
+            98,
+            supervision,
+          );
           const project = generateProject(spec),
             fingerprint = projectFingerprint(project),
             versionId = crypto.randomUUID();
@@ -244,7 +310,7 @@ export async function POST(request: Request) {
             "QA Agent",
             "completed",
             "Validated the contract, lifecycle handshake, network isolation, and immutable project.",
-            98,
+            99,
             {
               valid: true,
               checks: [

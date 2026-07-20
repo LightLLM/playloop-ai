@@ -37,6 +37,18 @@ test("compiler recognizes metroidvania, roguelike and shooter prompts", () => {
   );
 });
 
+test("explicit RPG identity is preserved in the fallback art contract", () => {
+  const prompt =
+    "Shadows of Aethelgard: Neon Covenant. A sci-fi RPG. Play as a cybernetic spell-blade with a plasma longsword aboard an orbital sanctuary.";
+  const spec = compileGameSpec(prompt);
+  assert.equal(spec.template, "rpg");
+  assert.equal(spec.title, "Shadows of Aethelgard: Neon Covenant");
+  assert.equal(spec.art.hero, "Cybernetic Spell-Blade");
+  assert.match(spec.art.manifest.environment, /orbital sanctuary/i);
+  assert.match(spec.art.manifest.hero, /plasma longsword/i);
+  assert.equal(validateGameSpec(spec).valid, true);
+});
+
 test("compiler recognizes arcade, sport, vehicle, and combat genres", () => {
   assert.equal(
     inferTemplate("A snake game where a serpent eats apples"),

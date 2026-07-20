@@ -146,6 +146,28 @@ function inferAvatar(prompt) {
   return "explorer";
 }
 
+function inferExplicitTitle(prompt) {
+  const text = String(prompt);
+  const match =
+    text.match(
+      /\btitle\s*:\s*([A-Z][A-Za-z0-9' -]{2,60}(?::\s*[A-Z][A-Za-z0-9' -]{2,40})?)(?=\.|\n|$)/,
+    ) ||
+    text.match(
+      /^([A-Z][A-Za-z0-9' -]{2,55}:\s*[A-Z][A-Za-z0-9' -]{2,40})(?=\.)/,
+    );
+  return match?.[1]?.trim() || null;
+}
+
+function inferNamedHero(prompt, fallback) {
+  const text = String(prompt);
+  const role = text.match(
+    /(?:play as|hero is|character is)\s+(?:an?\s+|the\s+)?([a-z][a-z -]{2,55})(?=\s+(?:with|who|wield|carrying)|[.,])/i,
+  );
+  return role?.[1]
+    ? role[1].replace(/\b\w/g, (letter) => letter.toUpperCase())
+    : fallback;
+}
+
 function inferMotifs(prompt, theme) {
   const text = prompt.toLowerCase();
   const motifs =
@@ -174,6 +196,9 @@ export function compileGameSpec(prompt, override = "auto") {
   const seed = hash(clean);
   const avatar = inferAvatar(clean),
     motifs = inferMotifs(clean, theme);
+  const explicitTitle = inferExplicitTitle(clean),
+    heroName = inferNamedHero(clean, art.hero),
+    gameTitle = explicitTitle || art.place;
   const objectives = {
     platformer: "Collect every spark and reach the portal.",
     metroidvania:
@@ -208,7 +233,7 @@ export function compileGameSpec(prompt, override = "auto") {
   const common = {
     schemaVersion: "1.0.0",
     id: `game-${seed.toString(36)}`,
-    title: art.place,
+    title: gameTitle,
     prompt: clean,
     template,
     theme,
@@ -249,16 +274,16 @@ export function compileGameSpec(prompt, override = "auto") {
     },
     art: {
       style: "procedural_layered_pixel_art",
-      direction: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs; no text or logos`,
+      direction: `Original cohesive 32-bit pixel art for ${gameTitle}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs; prompt-specific world and equipment; no text or logos`,
       palette: art.palette,
-      hero: art.hero,
+      hero: heroName,
       avatar,
       motifs,
       seed,
       characterDesign: {
         archetype: avatar,
-        role: art.hero,
-        silhouette: `${avatar} with a readable ${art.hero} profile`,
+        role: heroName,
+        silhouette: `${avatar} with a readable ${heroName} profile`,
         equipment: motifs.slice(0, 2),
         expression: "determined and approachable",
         animationStates: ["idle", "walk", "action", "hurt", "victory"],
@@ -270,10 +295,10 @@ export function compileGameSpec(prompt, override = "auto") {
         externalNetwork: false,
       },
       manifest: {
-        environment: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs. Layered ${theme} game environment with ${motifs.join(", ")}, camera appropriate for a ${template} game, no characters, no text or logos`,
-        hero: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs. ${avatar} ${art.hero}, full-body game character matching the world, transparent background, no text`,
-        props: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs. Collectible and interactive ${motifs.join(", ")} props matching the hero and environment, clean sprite sheet, transparent background, no text`,
-        spritesheet: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs. ${avatar} ${art.hero}, exact 4 by 4 grid sprite sheet with sixteen equal square frames, idle walk jump dash and action animations, identical costume scale and registration in every frame, transparent background, no text`,
+        environment: `Original cohesive 32-bit pixel art for ${gameTitle}; ${art.palette.join(", ")} palette. Layered ${theme} environment derived from this prompt: ${clean.slice(0, 420)}. Camera appropriate for a ${template} game, no characters, text, or logos`,
+        hero: `Original cohesive 32-bit pixel art for ${gameTitle}; ${art.palette.join(", ")} palette. Full-body ${avatar} ${heroName} derived from this prompt: ${clean.slice(0, 420)}. transparent background, no text`,
+        props: `Original cohesive 32-bit pixel art for ${gameTitle}; ${art.palette.join(", ")} palette. Clean sprite sheet of collectibles, hazards, and interactive props derived from this prompt: ${clean.slice(0, 420)}. transparent background, no text`,
+        spritesheet: `Original cohesive 32-bit pixel art for ${gameTitle}; ${art.palette.join(", ")} palette. ${avatar} ${heroName}, exact 4 by 4 grid with sixteen equal frames for idle, walk, action, hurt, and victory. Preserve the prompt-specific costume and equipment. transparent background, no text`,
       },
     },
     world: { width: 100, height: 100 },
