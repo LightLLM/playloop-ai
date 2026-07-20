@@ -1994,6 +1994,12 @@ export default function Home() {
                   IMMUTABLE
                 </p>
               )}
+              {assetStatus !== "ready" && (
+                <p className="build-fingerprint">
+                  ART SOURCE · PROMPT-DERIVED PROCEDURAL PIXEL ENGINE · SEEDED ·
+                  NETWORK-INDEPENDENT
+                </p>
+              )}
             </div>
             <div className="ready-actions">
               <button className="save-button" onClick={save}>

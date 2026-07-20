@@ -254,6 +254,12 @@ export function compileGameSpec(prompt, override = "auto") {
       avatar,
       motifs,
       seed,
+      fallbackProvenance: {
+        source: "playloop-procedural",
+        algorithm: "seeded-layered-pixel-art-v2",
+        promptDerived: true,
+        externalNetwork: false,
+      },
       manifest: {
         environment: `${theme} world with ${motifs.join(", ")}, layered 32-bit pixel art environment, cohesive palette, no text`,
         hero: `${avatar} ${art.hero}, original full-body 32-bit pixel art character sprite, transparent background`,

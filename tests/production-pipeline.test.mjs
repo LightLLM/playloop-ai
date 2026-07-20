@@ -80,6 +80,9 @@ test("generated art creates a new immutable version and enters the Phaser runtim
   assert.match(generator, /generateFrameNumbers/);
   assert.match(assets, /art\.provenance/);
   assert.match(assets, /openai-generated/);
+  assert.match(generator, /createProceduralBackdrop/);
+  assert.match(generator, /proceduralArt/);
+  assert.match(page, /PROMPT-DERIVED PROCEDURAL PIXEL ENGINE/);
 });
 test("account-owned achievements and high scores persist beyond browser storage", () => {
   for (const token of [
@@ -132,6 +135,9 @@ test("isolated QA launches every generated game and enforces the complete smoke 
   ])
     assert.match(sandboxWorker, new RegExp(check));
   assert.match(sandboxWorker, /npm run qa/);
+  assert.match(generator, /mechanicContract/);
+  assert.match(generator, /contract\.ready/);
+  assert.match(generator, /contract\.mechanicCount/);
 });
 test("immutable R2 art is hydrated into the isolated project without network access", () => {
   assert.match(generator, /assetRefs/);
