@@ -517,6 +517,19 @@
   );
   filter: drop-shadow(0 3px #26323a);
 }
+.moving-gear {
+  position: absolute;
+  z-index: 8;
+  aspect-ratio: 1;
+  min-width: 28px;
+  border: 7px dashed #f5cf67;
+  border-radius: 50%;
+  background: radial-gradient(circle, #17131f 0 23%, #9a5b36 25% 55%, #e2a84f 58% 66%, transparent 68%);
+  filter: drop-shadow(0 0 8px #f5cf6788);
+  animation: gear-spin 1.2s linear infinite;
+  transform: translate(-50%, -50%);
+}
+@keyframes gear-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 .checkpoint {
   position: absolute;
   z-index: 6;

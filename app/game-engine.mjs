@@ -2,6 +2,12 @@ import { validateContract } from "./game-spec-schema.mjs";
 /** @typedef {'top_down'|'platformer'|'metroidvania'|'roguelike'|'puzzle'|'shooter'|'snake'|'falling_blocks'|'tank'|'tennis'|'racing'|'strategy'|'rpg'|'card'|'simulation'|'narrative'} GameTemplate */
 
 const themes = {
+  clockwork: {
+    words: ["clocktower", "clock tower", "clockwork", "gear", "cog"],
+    palette: ["#17131f", "#9a5b36", "#f5cf67"],
+    place: "Clocktower Ascent",
+    hero: "Gearbound Climber",
+  },
   space: {
     words: ["space", "moon", "planet", "alien", "star"],
     palette: ["#111a38", "#7c6cff", "#d5ff62"],
@@ -108,7 +114,7 @@ export function inferTemplate(prompt, override = "auto") {
   )
     return "shooter";
   if (
-    /\b(platform|platformer|jump|side.?scroll|run and jump|obstacle course)\b/.test(
+    /\b(platform(?:er|ing)?|jump(?:ing)?|side.?scroll|run and jump|obstacle course|vertical ascent)\b/.test(
       text,
     )
   )
@@ -158,6 +164,18 @@ function inferExplicitTitle(prompt) {
   return match?.[1]?.trim() || null;
 }
 
+function inferPromptTitle(prompt) {
+  const match = String(prompt).match(
+    /\b(?:an?\s+)?(?:2d\s+)?([a-z0-9][a-z0-9' -]{2,45}?)\s+game\b/i,
+  );
+  const phrase = match?.[1]
+    ?.replace(/^(?:short|simple|original|fast|cozy)\s+/i, "")
+    .trim();
+  return phrase && phrase.split(/\s+/).length <= 6
+    ? phrase.replace(/\b\w/g, (letter) => letter.toUpperCase())
+    : null;
+}
+
 function inferNamedHero(prompt, fallback) {
   const text = String(prompt);
   const role = text.match(
@@ -171,7 +189,9 @@ function inferNamedHero(prompt, fallback) {
 function inferMotifs(prompt, theme) {
   const text = prompt.toLowerCase();
   const motifs =
-    theme === "space"
+    theme === "clockwork"
+      ? ["gear", "pendulum", "clockface"]
+      : theme === "space"
       ? ["crater", "satellite", "crystal"]
       : theme === "ocean"
         ? ["coral", "shell", "palm"]
@@ -197,10 +217,14 @@ export function compileGameSpec(prompt, override = "auto") {
   const avatar = inferAvatar(clean),
     motifs = inferMotifs(clean, theme);
   const explicitTitle = inferExplicitTitle(clean),
+    promptTitle = inferPromptTitle(clean),
     heroName = inferNamedHero(clean, art.hero),
-    gameTitle = explicitTitle || art.place;
+    gameTitle = explicitTitle || promptTitle || art.place;
   const objectives = {
-    platformer: "Collect every spark and reach the portal.",
+    platformer:
+      theme === "clockwork"
+        ? "Climb every clocktower floor, avoid the moving gears, and reach the belfry exit."
+        : "Collect every spark and reach the portal.",
     metroidvania:
       "Find movement abilities, backtrack, and open the sealed core.",
     roguelike: "Survive the procedural dungeon and descend to the next floor.",
@@ -333,10 +357,19 @@ export function compileGameSpec(prompt, override = "auto") {
         { x: 215, y: 42 },
       ],
       hazards: [
-        { x: 29, y: 82, w: 7 },
-        { x: 79, y: 82, w: 9 },
-        { x: 116, y: 82, w: 6 },
-        { x: 197, y: 82, w: 7 },
+        ...(theme === "clockwork"
+          ? [
+              { x: 42, y: 64, w: 8, h: 8, type: "gear", motion: { axis: "x", range: 8, speed: 1.25 } },
+              { x: 94, y: 69, w: 9, h: 9, type: "gear", motion: { axis: "y", range: 9, speed: 1.05 } },
+              { x: 151, y: 38, w: 8, h: 8, type: "gear", motion: { axis: "x", range: 10, speed: 1.4 } },
+              { x: 207, y: 46, w: 9, h: 9, type: "gear", motion: { axis: "y", range: 8, speed: 1.2 } },
+            ]
+          : [
+              { x: 29, y: 82, w: 7, type: "spikes" },
+              { x: 79, y: 82, w: 9, type: "spikes" },
+              { x: 116, y: 82, w: 6, type: "spikes" },
+              { x: 197, y: 82, w: 7, type: "spikes" },
+            ]),
       ],
       enemies: [
         { x: 52, y: 66, type: "beetle" },

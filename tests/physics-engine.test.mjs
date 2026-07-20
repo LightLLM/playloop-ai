@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createBody,
   overlaps,
+  positionHazard,
   respawnBody,
   stepPhysics,
 } from "../app/physics-engine.mjs";
@@ -24,6 +25,13 @@ test("gravity accelerates airborne bodies and swept landing stops at platform to
   assert.equal(body.y, 70);
   assert.equal(body.vy, 0);
   assert.equal(body.grounded, true);
+});
+test("moving gear hazards change position and retain collision bounds", () => {
+  const gear = { x: 40, y: 60, w: 8, h: 8, type: "gear", motion: { axis: "x", range: 10, speed: 0.25 } };
+  assert.equal(positionHazard(gear, 0).x, 40);
+  assert.equal(positionHazard(gear, 1).x, 50);
+  const movingWorld = { ...world, elapsedSeconds: 1, hazards: [gear] };
+  assert.equal(stepPhysics({ ...createBody({ x: 50, y: 60 }), vy: 0 }, {}, movingWorld).events.hazard, true);
 });
 test("jump only starts while grounded", () => {
   const grounded = { ...createBody({ x: 10, y: 70 }), grounded: true };

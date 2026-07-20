@@ -142,6 +142,19 @@ test("standalone preview is playable, lifecycle-aware, and network isolated", ()
   assert.doesNotMatch(html, /(?:src|href)=["']https?:\/\//i);
 });
 
+test("clocktower standalone preview runs platform physics and animated gear hazards", () => {
+  const spec = compileGameSpec(
+    "A 2D clocktower ascent game where each floor is a short platforming challenge and gears act as moving hazards.",
+  );
+  const html = generatePreviewHtml(spec);
+  assert.match(html, /CLIMB TO THE BELFRY/);
+  assert.match(html, /function gearAt/);
+  assert.match(html, /function physics/);
+  assert.match(html, /game\.victory/);
+  assert.match(html, /FLOOR 3/);
+  assert.equal(validatePreviewArtifact(html).valid, true);
+});
+
 test("cyber Metroidvania preview uses the curated Neon Sentinel artwork", () => {
   const spec = compileGameSpec(
       "Neon Sentinel is a cyberpunk Metroidvania with a runner and plasma combat",

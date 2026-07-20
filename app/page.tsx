@@ -7,7 +7,7 @@ import {
   togglePuzzle,
   validateGameSpec,
 } from "./game-engine.mjs";
-import { createBody, respawnBody, stepPhysics } from "./physics-engine.mjs";
+import { createBody, positionHazard, respawnBody, stepPhysics } from "./physics-engine.mjs";
 
 type Step = "prompt" | "auth" | "plan" | "building" | "ready";
 type BuildEvent = {
@@ -220,6 +220,7 @@ function Platformer({
     [health, setHealth] = useState(3),
     [checkpoint, setCheckpoint] = useState({ x: 8, y: 82 }),
     invulnerable = useRef(0);
+  const elapsed = useRef(0);
   const total = spec.collectibles.length,
     camera = Math.max(0, Math.min(worldWidth - 100, body.x - 28));
   bodyRef.current = body;
@@ -231,13 +232,14 @@ function Platformer({
       accumulator += Math.min(0.05, (now - last) / 1000);
       last = now;
       while (accumulator >= 1 / 60) {
+        elapsed.current += 1 / 60;
         const activeEnemies = spec.enemies.filter(
           (_: any, i: number) => !defeated.includes(i),
         );
         const result = stepPhysics(
           bodyRef.current,
           input.current,
-          { ...spec, enemies: activeEnemies },
+          { ...spec, enemies: activeEnemies, elapsedSeconds: elapsed.current },
           1 / 60,
         );
         input.current.jump = false;
@@ -363,17 +365,18 @@ function Platformer({
               <i />
             </div>
           ))}
-          {spec.hazards.map((h: any, i: number) => (
-            <div
-              className="spikes"
+          {spec.hazards.map((source: any, i: number) => {
+            const h = positionHazard(source, elapsed.current);
+            return <div
+              className={h.type === "gear" ? "moving-gear" : "spikes"}
               key={`h${i}`}
               style={{
                 left: `${(h.x / worldWidth) * 100}%`,
-                top: "80%",
+                top: `${h.y ?? 80}%`,
                 width: `${(h.w / worldWidth) * 100}%`,
               }}
-            />
-          ))}
+            />;
+          })}
           {spec.checkpoints.map((c: any, i: number) => (
             <div
               className={`checkpoint ${checkpoint.x === c.x ? "active" : ""}`}

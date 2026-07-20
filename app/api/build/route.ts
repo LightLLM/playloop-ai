@@ -58,7 +58,8 @@ function supervisePromptFidelity(prompt: string, spec: any) {
         ),
     ),
   ].slice(0, 24);
-  const specText = JSON.stringify(spec).toLowerCase();
+  const { prompt: _sourcePrompt, ...supervisedSpec } = spec || {};
+  const specText = JSON.stringify(supervisedSpec).toLowerCase();
   const artText = JSON.stringify(spec.art?.manifest || {}).toLowerCase();
   const matchedTerms = significant.filter((term) => specText.includes(term));
   const artTerms = significant.filter((term) => artText.includes(term));
@@ -68,6 +69,15 @@ function supervisePromptFidelity(prompt: string, spec: any) {
     promptIdentity: matchedTerms.length >= Math.min(5, significant.length),
     artworkIdentity: artTerms.length >= Math.min(4, significant.length),
     playableContract: validateGameSpec(spec).valid,
+    clocktowerIdentity:
+      !/clock\s*tower|clocktower/i.test(prompt) ||
+      /clock\s*tower|clocktower/i.test(`${spec.title} ${artText}`),
+    requestedGears:
+      !/\bgears?\b/i.test(prompt) ||
+      spec.hazards?.some((hazard: any) => hazard.type === "gear"),
+    requestedMotion:
+      !/\bmoving\s+hazards?\b/i.test(prompt) ||
+      spec.hazards?.some((hazard: any) => hazard.motion?.range > 0),
   };
   return {
     passed: Object.values(checks).every(Boolean),

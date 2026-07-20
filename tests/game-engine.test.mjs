@@ -22,6 +22,19 @@ test("compiler selects all three gameplay templates", () => {
   );
 });
 
+test("clocktower platforming prompt preserves identity and moving gear hazards", () => {
+  const prompt = "A 2D clocktower ascent game where each floor is a short platforming challenge and gears act as moving hazards.";
+  const spec = compileGameSpec(prompt);
+  assert.equal(spec.template, "platformer");
+  assert.equal(spec.theme, "clockwork");
+  assert.match(spec.title, /Clocktower Ascent/i);
+  assert.match(spec.objective, /clocktower floor/i);
+  assert.ok(spec.hazards.length >= 4);
+  assert.ok(spec.hazards.every((hazard) => hazard.type === "gear"));
+  assert.ok(spec.hazards.every((hazard) => hazard.motion?.range > 0));
+  assert.match(spec.art.manifest.environment, /clocktower/i);
+});
+
 test("compiler recognizes metroidvania, roguelike and shooter prompts", () => {
   assert.equal(
     inferTemplate("An interconnected metroidvania with a grapple hook"),

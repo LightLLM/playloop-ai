@@ -2,6 +2,17 @@ export const PHYSICS = Object.freeze({ gravity: 92, moveSpeed: 34, jumpSpeed: 47
 
 export function overlaps(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
 
+export function positionHazard(hazard, elapsedSeconds = 0) {
+  const motion = hazard.motion;
+  if (!motion) return { ...hazard };
+  const offset = Math.sin(elapsedSeconds * (motion.speed || 1) * Math.PI * 2) * (motion.range || 0);
+  return {
+    ...hazard,
+    x: hazard.x + (motion.axis === "x" ? offset : 0),
+    y: (hazard.y ?? 80) + (motion.axis === "y" ? offset : 0),
+  };
+}
+
 export function createBody(start = { x: 8, y: 65 }) { return { x: start.x, y: start.y, vx: 0, vy: 0, w: PHYSICS.bodyWidth, h: PHYSICS.bodyHeight, grounded: false, facing: 1 }; }
 
 export function stepPhysics(body, input, world, dt = PHYSICS.fixedStep) {
@@ -21,7 +32,7 @@ export function stepPhysics(body, input, world, dt = PHYSICS.fixedStep) {
     else if (overlaps(next, solid) && !wasAbove) { if (next.vx > 0) next.x = solid.x - next.w; else if (next.vx < 0) next.x = solid.x + solid.w; next.vx = 0; }
   }
 
-  const hazard = (world.hazards || []).some((h) => overlaps(next, { x: h.x, y: h.y ?? 80, w: h.w, h: h.h || 9 }));
+  const hazard = (world.hazards || []).some((source) => { const h = positionHazard(source, world.elapsedSeconds || 0); return overlaps(next, { x: h.x, y: h.y ?? 80, w: h.w, h: h.h || 9 }); });
   const enemy = (world.enemies || []).findIndex((e) => overlaps(next, { x: e.x, y: e.y, w: e.w || 5, h: e.h || 7 }));
   return { body: next, events: { fell: next.y > (world.height || 100) + 12, hazard, enemy } };
 }
