@@ -31,6 +31,7 @@ async function attachAssetToVersion(
       moderation: "passed",
       source: "openai-generated",
       immutable: true,
+      artSetId: jobId,
     },
   };
   await env.DB.prepare(
@@ -128,7 +129,12 @@ export async function POST(request: Request) {
   if (!row?.spec_json || row.status !== "completed")
     return Response.json({ error: "Build not ready" }, { status: 404 });
   const spec = JSON.parse(row.spec_json),
-    prompt = String(spec.art?.manifest?.[kind] || "").slice(0, 3000),
+    direction = String(spec.art?.direction || "").trim(),
+    assetBrief = String(spec.art?.manifest?.[kind] || "").trim(),
+    prompt = `${direction}\n\nASSET: ${assetBrief}\n\nContinuity requirements: this asset belongs to art set ${jobId}; preserve the exact palette, rendering method, lighting, materials, character costume, silhouette language, scale, and recurring motifs across the environment, hero, props, and animation sheet. Original game artwork only. No copyrighted characters, text, logos, signatures, UI, borders, or mockup frames.`.slice(
+      0,
+      5000,
+    ),
     apiKey = (env as any).OPENAI_API_KEY || process.env.OPENAI_API_KEY;
   if (!apiKey)
     return Response.json(
@@ -185,7 +191,13 @@ export async function POST(request: Request) {
       contentType: "image/webp",
       cacheControl: "public, max-age=31536000, immutable",
     },
-    customMetadata: { jobId, kind, model: "gpt-image-1.5" },
+    customMetadata: {
+      jobId,
+      kind,
+      model: "gpt-image-1.5",
+      artSetId: jobId,
+      theme: String(spec.theme || "original").slice(0, 64),
+    },
   });
   await env.DB.prepare(
     "INSERT INTO generated_assets (id,job_id,kind,object_key,prompt,model,moderation_status) VALUES (?,?,?,?,?,'gpt-image-1.5','passed')",

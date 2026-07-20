@@ -249,6 +249,7 @@ export function compileGameSpec(prompt, override = "auto") {
     },
     art: {
       style: "procedural_layered_pixel_art",
+      direction: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs; no text or logos`,
       palette: art.palette,
       hero: art.hero,
       avatar,
@@ -269,10 +270,10 @@ export function compileGameSpec(prompt, override = "auto") {
         externalNetwork: false,
       },
       manifest: {
-        environment: `${theme} world with ${motifs.join(", ")}, layered 32-bit pixel art environment, cohesive palette, no text`,
-        hero: `${avatar} ${art.hero}, original full-body 32-bit pixel art character sprite, transparent background`,
-        props: `${motifs.join(", ")} collectible props, original 32-bit pixel art sprite sheet, transparent background`,
-        spritesheet: `${avatar} ${art.hero}, exact 4 by 4 grid sprite sheet with sixteen equal square frames, walk idle jump and action animations, consistent character scale and registration, transparent background, no text`,
+        environment: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs. Layered ${theme} game environment with ${motifs.join(", ")}, camera appropriate for a ${template} game, no characters, no text or logos`,
+        hero: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs. ${avatar} ${art.hero}, full-body game character matching the world, transparent background, no text`,
+        props: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs. Collectible and interactive ${motifs.join(", ")} props matching the hero and environment, clean sprite sheet, transparent background, no text`,
+        spritesheet: `Original cohesive 32-bit pixel art for ${art.place}; ${art.palette.join(", ")} palette; readable game silhouettes; consistent ${avatar} proportions; ${motifs.join(", ")} motifs. ${avatar} ${art.hero}, exact 4 by 4 grid sprite sheet with sixteen equal square frames, idle walk jump dash and action animations, identical costume scale and registration in every frame, transparent background, no text`,
       },
     },
     world: { width: 100, height: 100 },

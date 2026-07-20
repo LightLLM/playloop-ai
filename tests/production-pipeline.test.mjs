@@ -83,6 +83,8 @@ test("generated art creates a new immutable version and enters the Phaser runtim
   assert.match(generator, /createProceduralBackdrop/);
   assert.match(generator, /proceduralArt/);
   assert.match(page, /PROMPT-DERIVED PROCEDURAL PIXEL ENGINE/);
+  assert.match(page, /has-generated-environment/);
+  assert.match(page, /has-generated-hero/);
   for (const token of [
     "hero-frame-0",
     "hero-frame-5",

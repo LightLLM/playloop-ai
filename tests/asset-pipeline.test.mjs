@@ -24,3 +24,9 @@ test("asset delivery is immutable and restricted to known manifest kinds", () =>
   assert.match(route, /max-age=31536000, immutable/);
   assert.match(route, /x-content-type-options/);
 });
+test("every generated image belongs to one prompt-derived cohesive art set", () => {
+  assert.match(route, /spec\.art\?\.direction/);
+  assert.match(route, /Continuity requirements/);
+  assert.match(route, /artSetId/);
+  assert.match(route, /environment, hero, props, and animation sheet/);
+});

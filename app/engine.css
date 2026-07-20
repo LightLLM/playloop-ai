@@ -590,6 +590,25 @@
 }
 
 /* Genre runtimes */
+.art-runtime {
+  position: relative;
+}
+.art-runtime.has-generated-environment .engine-world {
+  background-image:
+    linear-gradient(180deg, #080c1588, #080c15b0),
+    var(--generated-environment) !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+.art-runtime.has-generated-hero .engine-sprite.hero {
+  width: 58px;
+  height: 66px;
+  background: var(--generated-hero) center bottom / contain no-repeat !important;
+  filter: drop-shadow(0 7px 4px #050811aa);
+}
+.art-runtime.has-generated-hero .engine-sprite.hero > i {
+  display: none;
+}
 .genre-hud {
   height: 40px;
   display: flex;

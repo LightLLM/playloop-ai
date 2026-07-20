@@ -16,6 +16,8 @@ type Enrichment = {
   environment_prompt: string;
   hero_prompt: string;
   prop_prompt: string;
+  spritesheet_prompt: string;
+  art_direction: string;
 };
 
 const enrichmentSchema = {
@@ -35,6 +37,8 @@ const enrichmentSchema = {
     environment_prompt: { type: "string" },
     hero_prompt: { type: "string" },
     prop_prompt: { type: "string" },
+    spritesheet_prompt: { type: "string" },
+    art_direction: { type: "string" },
   },
   required: [
     "title",
@@ -45,6 +49,8 @@ const enrichmentSchema = {
     "environment_prompt",
     "hero_prompt",
     "prop_prompt",
+    "spritesheet_prompt",
+    "art_direction",
   ],
 };
 
@@ -117,7 +123,7 @@ export async function POST(request: Request) {
           {
             role: "developer",
             content:
-              "You are the creative director for an original, family-friendly 2D pixel-art game. Enrich the supplied idea without copying existing franchises. Keep objectives achievable by the provided game template. Asset prompts describe cohesive 32-bit pixel art with transparent sprite backgrounds where relevant.",
+              "You are the creative director for an original, family-friendly 2D game. Enrich the supplied idea without copying existing franchises. Keep objectives achievable by the provided game template. First define one precise art_direction covering rendering style, camera, palette, lighting, materials, proportions, and recurring motifs. Every asset prompt must explicitly repeat that same direction and describe the same named hero and world. Environment art has no characters or text. Hero and prop art use transparent backgrounds. The spritesheet is an exact 4 by 4 grid of sixteen equal square frames with consistent scale, registration, costume, and silhouette.",
           },
           {
             role: "user",
@@ -149,10 +155,12 @@ export async function POST(request: Request) {
         ...base.art,
         hero: enrichment.hero,
         palette: enrichment.palette,
+        direction: enrichment.art_direction,
         manifest: {
           environment: enrichment.environment_prompt,
           hero: enrichment.hero_prompt,
           props: enrichment.prop_prompt,
+          spritesheet: enrichment.spritesheet_prompt,
         },
       },
     };

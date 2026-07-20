@@ -1321,27 +1321,46 @@ function Runtime({
   spec: GameSpec;
   onProgress: (p: any) => void;
 }) {
+  const generated = spec.art.generated || {};
+  let game: React.ReactNode;
   if (spec.template === "platformer")
-    return <Platformer spec={spec} onProgress={onProgress} />;
-  if (spec.template === "metroidvania")
-    return <Metroidvania spec={spec} onProgress={onProgress} />;
-  if (spec.template === "roguelike")
-    return <Roguelike spec={spec} onProgress={onProgress} />;
-  if (spec.template === "shooter")
-    return <Shooter spec={spec} onProgress={onProgress} />;
-  if (spec.template === "snake")
-    return <SnakeGame spec={spec} onProgress={onProgress} />;
-  if (spec.template === "falling_blocks")
-    return <FallingBlocks spec={spec} onProgress={onProgress} />;
-  if (spec.template === "tank")
-    return <TankGame spec={spec} onProgress={onProgress} />;
-  if (spec.template === "tennis")
-    return <TennisGame spec={spec} onProgress={onProgress} />;
-  if (spec.template === "racing")
-    return <RacingGame spec={spec} onProgress={onProgress} />;
-  if (spec.template === "puzzle")
-    return <Puzzle spec={spec} onProgress={onProgress} />;
-  return <TopDown spec={spec} onProgress={onProgress} />;
+    game = <Platformer spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "metroidvania")
+    game = <Metroidvania spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "roguelike")
+    game = <Roguelike spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "shooter")
+    game = <Shooter spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "snake")
+    game = <SnakeGame spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "falling_blocks")
+    game = <FallingBlocks spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "tank")
+    game = <TankGame spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "tennis")
+    game = <TennisGame spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "racing")
+    game = <RacingGame spec={spec} onProgress={onProgress} />;
+  else if (spec.template === "puzzle")
+    game = <Puzzle spec={spec} onProgress={onProgress} />;
+  else game = <TopDown spec={spec} onProgress={onProgress} />;
+  return (
+    <div
+      className={`art-runtime ${generated.environment ? "has-generated-environment" : ""} ${generated.hero ? "has-generated-hero" : ""}`}
+      style={
+        {
+          "--generated-environment": generated.environment
+            ? `url("${generated.environment}")`
+            : "none",
+          "--generated-hero": generated.hero
+            ? `url("${generated.hero}")`
+            : "none",
+        } as React.CSSProperties
+      }
+    >
+      {game}
+    </div>
+  );
 }
 
 const agentPipeline = [
@@ -1524,6 +1543,31 @@ export default function Home() {
           });
           if (response.ok) {
             latest = await response.json();
+            const asset = latest;
+            if (asset?.kind && asset?.url)
+              setSpec((current) =>
+                current
+                  ? {
+                      ...current,
+                      art: {
+                        ...current.art,
+                        generated: {
+                          ...(current.art.generated || {}),
+                          [asset.kind]: asset.url,
+                        },
+                        provenance: {
+                          ...(current.art.provenance || {}),
+                          [asset.kind]: {
+                            assetId: asset.id,
+                            model: asset.model,
+                            source: "openai-generated",
+                            immutable: true,
+                          },
+                        },
+                      },
+                    }
+                  : current,
+              );
             generated++;
           }
         } catch {}

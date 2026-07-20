@@ -32,4 +32,6 @@ test("every local GameSpec contains a cohesive art production manifest", () => {
   assert.match(spec.art.manifest.environment, /pixel art/);
   assert.match(spec.art.manifest.hero, /transparent background/);
   assert.match(spec.art.manifest.props, /sprite sheet/);
+  assert.match(spec.art.direction, /cohesive 32-bit pixel art/);
+  assert.match(spec.art.manifest.spritesheet, /4 by 4 grid/);
 });
