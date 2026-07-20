@@ -114,7 +114,7 @@ function TopDown({
   return (
     <>
       <div
-        className="engine-world topdown"
+        className={`engine-world topdown theme-${spec.theme}`}
         style={
           {
             "--p1": spec.art.palette[0],
@@ -160,13 +160,15 @@ function TopDown({
           className="world-player"
           style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
         >
-          <PixelHero />
+          <PixelHero avatar={spec.art.avatar} />
         </div>
       </div>
       <GameControls move={move} />
       <p className="runtime-status">
-        Relics {found.length}/3{" "}
-        {found.length === 3 ? "· Quest complete!" : "· Explore and collect"}
+        Relics {found.length}/{spec.collectibles.length}{" "}
+        {found.length === spec.collectibles.length
+          ? "· Quest complete!"
+          : "· Explore and collect"}
       </p>
     </>
   );
@@ -1740,6 +1742,7 @@ export default function Home() {
     setBuildArtifact(null);
     setStep("building");
     try {
+      let completed = false;
       const response = await fetch("/api/build", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1762,11 +1765,14 @@ export default function Home() {
           const event = JSON.parse(line.slice(6)) as BuildEvent;
           setBuildEvents((old) => [...old, event]);
           setProgress(event.progress);
+          if (event.agent === "Orchestrator" && event.status === "failed")
+            throw new Error(event.summary || "Build failed");
           if (
             event.agent === "Orchestrator" &&
             event.status === "completed" &&
             event.artifact?.spec
           ) {
+            completed = true;
             const made = event.artifact.spec;
             if (!validateGameSpec(made).valid)
               throw new Error("Invalid GameSpec");
@@ -1777,6 +1783,7 @@ export default function Home() {
           }
         }
       }
+      if (!completed) throw new Error("Build ended before producing a game");
     } catch {
       const made =
         spec && validateGameSpec(spec).valid
