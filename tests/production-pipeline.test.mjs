@@ -83,6 +83,20 @@ test("generated art creates a new immutable version and enters the Phaser runtim
   assert.match(generator, /createProceduralBackdrop/);
   assert.match(generator, /proceduralArt/);
   assert.match(page, /PROMPT-DERIVED PROCEDURAL PIXEL ENGINE/);
+  for (const token of [
+    "hero-frame-0",
+    "hero-frame-5",
+    "characterTexture",
+    'key:"idle"',
+    'key:"walk"',
+    'key:"action"',
+    "enemy-a",
+    "enemy-b",
+  ])
+    assert.match(
+      generator,
+      new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    );
 });
 test("account-owned achievements and high scores persist beyond browser storage", () => {
   for (const token of [

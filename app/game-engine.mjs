@@ -254,6 +254,14 @@ export function compileGameSpec(prompt, override = "auto") {
       avatar,
       motifs,
       seed,
+      characterDesign: {
+        archetype: avatar,
+        role: art.hero,
+        silhouette: `${avatar} with a readable ${art.hero} profile`,
+        equipment: motifs.slice(0, 2),
+        expression: "determined and approachable",
+        animationStates: ["idle", "walk", "action", "hurt", "victory"],
+      },
       fallbackProvenance: {
         source: "playloop-procedural",
         algorithm: "seeded-layered-pixel-art-v2",

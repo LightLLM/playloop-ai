@@ -107,6 +107,22 @@ test("art direction changes with the prompt subject", () => {
   assert.notDeepEqual(fox.art.motifs, robot.art.motifs);
 });
 
+test("character direction includes archetype, equipment, and animation states", () => {
+  const spec = compileGameSpec(
+    "A moon fox ranger explores glowing forest ruins",
+  );
+  assert.equal(spec.art.characterDesign.archetype, spec.art.avatar);
+  assert.ok(spec.art.characterDesign.role);
+  assert.ok(spec.art.characterDesign.equipment.length >= 1);
+  assert.deepEqual(spec.art.characterDesign.animationStates, [
+    "idle",
+    "walk",
+    "action",
+    "hurt",
+    "victory",
+  ]);
+});
+
 test("advanced genres compile their defining mechanics", () => {
   const metro = compileGameSpec("A forest metroidvania with backtracking");
   const rogue = compileGameSpec("A cyber roguelike with permadeath");
