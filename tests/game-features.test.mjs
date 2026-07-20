@@ -66,6 +66,38 @@ test("RPG fallback has a dedicated playable adapter", () => {
   assert.match(page, /spec\.template\s*===\s*"rpg"/);
   assert.match(page, /game\s*=\s*<RpgGame/);
 });
+test("Resonance Hollow RPG exposes quests, sound combat, and a skill tree", () => {
+  for (const feature of [
+    "function ResonanceRpg",
+    "Bass Impact",
+    "Echo Step",
+    "Harmonic Shield",
+    "CAST SOUND WAVE",
+    "Mute King",
+    "quest-complete",
+  ]) assert.match(page, new RegExp(feature));
+  assert.match(css, /\.resonance-skill-tree/);
+  assert.match(css, /@keyframes resonance-pulse/);
+});
+test("runtime exposes prompt-driven adaptive soundtrack controls", () => {
+  assert.match(page, /compileAudioPlan/);
+  assert.match(page, /createProceduralAudioEngine/);
+  assert.match(page, /deriveAudioCue/);
+  assert.match(page, /ENABLE SOUND/);
+  assert.match(css, /\.game-audio-bar/);
+});
+test("card fallback has a dedicated playable adapter", () => {
+  assert.match(page, /function CardGame/);
+  assert.match(page, /spec\.template\s*===\s*"card"/);
+  assert.match(page, /game\s*=\s*<CardGame/);
+  assert.match(page, /CHRONOVORE/);
+});
+test("narrative fallback has a dedicated branching adapter", () => {
+  assert.match(page, /function NarrativeGame/);
+  assert.match(page, /spec\.template\s*===\s*"narrative"/);
+  assert.match(page, /game\s*=\s*<NarrativeGame/);
+  assert.match(page, /dialogue-choices/);
+});
 test("build screen exposes agent execution beside live preview", () => {
   for (const feature of [
     "AgentBuildWorkspace",
@@ -95,6 +127,24 @@ test("finished preview waits for artwork and isolated QA terminal results", () =
 test("prompt-generated hero art replaces the top-down fallback character", () => {
   assert.match(page, /has-generated-hero/);
   assert.match(css, /\.world-player \.engine-sprite\.hero/);
+});
+test("tank battle renders enriched teams, terrain, and firing feedback", () => {
+  for (const feature of [
+    "Red enemy tank",
+    "Green player tank",
+    "tank-tracks",
+    "tank-turret",
+    "battlefield-crater",
+    "battlefield-sandbags",
+    "muzzle-flash",
+  ])
+    assert.match(page, new RegExp(feature));
+  for (const feature of [
+    ".enemy-tank .tank-hull",
+    ".battlefield-road",
+    ".tank.is-firing .muzzle-flash",
+  ])
+    assert.match(css, new RegExp(feature.replaceAll(".", "\\.")));
 });
 test("creator approves a structured plan before the build starts", () => {
   for (const feature of [

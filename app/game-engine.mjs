@@ -161,7 +161,7 @@ function inferExplicitTitle(prompt) {
     text.match(
       /^([A-Z][A-Za-z0-9' -]{2,55}:\s*[A-Z][A-Za-z0-9' -]{2,40})(?=\.)/,
     );
-  return match?.[1]?.trim() || null;
+  return match?.[1]?.trim().replace(/^title\s*:\s*/i, "") || null;
 }
 
 function inferPromptTitle(prompt) {

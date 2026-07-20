@@ -28,6 +28,8 @@ test("generator packages a deterministic immutable Phaser project", () => {
   assert.equal(a.immutable, true);
   assert.match(a.files["src/main.ts"], /import Phaser/);
   assert.match(a.files["game-spec.json"], /"template": "snake"/);
+  assert.match(a.files["game-spec.json"], /"audioPlan"/);
+  assert.match(a.files["src/main.ts"], /spec\.audioPlan/);
   assert.equal(projectFingerprint(a), projectFingerprint(b));
 });
 test("every genre emits syntactically valid Phaser and browser QA TypeScript", () => {
@@ -152,6 +154,22 @@ test("clocktower standalone preview runs platform physics and animated gear haza
   assert.match(html, /function physics/);
   assert.match(html, /game\.victory/);
   assert.match(html, /FLOOR 3/);
+  assert.equal(validatePreviewArtifact(html).valid, true);
+});
+
+test("tank standalone preview renders armored teams and projectile combat", () => {
+  const spec = compileGameSpec(
+      "A top-down tank battle with a green player tank and red enemy tanks",
+      "tank",
+    ),
+    html = generatePreviewHtml(spec);
+  assert.match(html, /SPACE FIRE/);
+  assert.match(html, /function tank/);
+  assert.match(html, /bullets=\[\]/);
+  assert.match(html, /RED TANKS/);
+  assert.match(html, /FIELD SECURED/);
+  assert.match(html, /#711e26/);
+  assert.match(html, /#264c29/);
   assert.equal(validatePreviewArtifact(html).valid, true);
 });
 

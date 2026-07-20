@@ -8,6 +8,11 @@ import {
   validateGameSpec,
 } from "./game-engine.mjs";
 import { createBody, positionHazard, respawnBody, stepPhysics } from "./physics-engine.mjs";
+import {
+  compileAudioPlan,
+  createProceduralAudioEngine,
+  deriveAudioCue,
+} from "./audio-engine.mjs";
 
 type Step = "prompt" | "auth" | "plan" | "building" | "ready";
 type BuildEvent = {
@@ -174,6 +179,98 @@ function TopDown({
   );
 }
 
+function ResonanceRpg({
+  spec,
+  onProgress,
+}: {
+  spec: GameSpec;
+  onProgress: (p: any) => void;
+}) {
+  const skills = ["Bass Impact", "Echo Step", "Harmonic Shield"],
+    quests = ["Tune the Crystal Choir", "Restore the Echo Bridge", "Break the Silent Seal"],
+    [quest, setQuest] = useState(0),
+    [resonance, setResonance] = useState(0),
+    [unlocked, setUnlocked] = useState<string[]>([]),
+    [silenceCreatures, setSilenceCreatures] = useState(3),
+    [bossHp, setBossHp] = useState(12),
+    [pulse, setPulse] = useState(0);
+  const report = (detail: any) => onProgress({
+    quest, resonance, unlocked, silenceCreatures, bossHp, ...detail,
+  });
+  const completeQuest = () => {
+    if (quest >= quests.length) return;
+    const next = quest + 1;
+    setQuest(next);
+    setResonance((value: number) => value + 1);
+    report({ quest: next, event: "quest-complete" });
+  };
+  const unlock = (skill: string) => {
+    if (resonance < 1 || unlocked.includes(skill)) return;
+    const next = [...unlocked, skill];
+    setUnlocked(next);
+    setResonance((value: number) => value - 1);
+    report({ unlocked: next, event: `skill:${skill}` });
+  };
+  const cast = () => {
+    setPulse((value: number) => value + 1);
+    if (silenceCreatures > 0) {
+      const next = silenceCreatures - 1;
+      setSilenceCreatures(next);
+      report({ silenceCreatures: next, event: "sound-wave" });
+      return;
+    }
+    const damage = Math.max(1, 1 + unlocked.length * 2),
+      next = Math.max(0, bossHp - damage);
+    setBossHp(next);
+    report({ bossHp: next, event: next ? "boss-hit" : "victory" });
+  };
+  return (
+    <>
+      <div className="genre-hud resonance-hud">
+        <span>QUESTS {quest}/3</span>
+        <span>RESONANCE {resonance}</span>
+        <span>SILENCE {silenceCreatures}</span>
+        <span>MUTE KING {bossHp} HP</span>
+      </div>
+      <div className={`engine-world resonance-world pulse-${pulse % 2}`}>
+        <div className="resonance-cavern"><i /><i /><i /><i /><i /></div>
+        <div className="sonic-mage" aria-label="Sonic mage"><i>♫</i></div>
+        <div className="sound-rings" aria-hidden="true"><i /><i /><i /></div>
+        <div className="silence-pack" aria-label="Silence creatures">
+          {Array.from({ length: silenceCreatures }, (_, index) => <i key={index}>∅</i>)}
+        </div>
+        <div className={`mute-king ${bossHp <= 0 ? "defeated" : ""}`} aria-label="Mute King boss">
+          <i>♛</i><strong>{bossHp > 0 ? `${bossHp} HP` : "RESONANCE RESTORED"}</strong>
+        </div>
+        <aside className="resonance-skill-tree">
+          <small>HARMONIC SKILL TREE</small>
+          {skills.map((skill) => (
+            <button
+              key={skill}
+              className={unlocked.includes(skill) ? "unlocked" : ""}
+              disabled={unlocked.includes(skill) || resonance < 1}
+              onClick={() => unlock(skill)}
+            >
+              <i>{unlocked.includes(skill) ? "✓" : "◇"}</i>{skill}
+            </button>
+          ))}
+        </aside>
+      </div>
+      <div className="rogue-actions resonance-actions">
+        <button disabled={quest >= quests.length} onClick={completeQuest}>
+          {quest < quests.length ? `QUEST · ${quests[quest]}` : "ALL QUESTS COMPLETE"}
+        </button>
+        <button onClick={cast} disabled={bossHp <= 0}>CAST SOUND WAVE</button>
+      </div>
+      <p className="runtime-status">
+        {bossHp <= 0
+          ? "Victory — the Mute King has fallen and sound returns to the Hollow."
+          : "Complete resonance quests, unlock frequency skills, and defeat the Mute King."}
+      </p>
+    </>
+  );
+}
+
 function RpgGame({
   spec,
   onProgress,
@@ -181,6 +278,8 @@ function RpgGame({
   spec: GameSpec;
   onProgress: (p: any) => void;
 }) {
+  if (/sound|frequency|resonance|sonic|mute king/i.test(spec.prompt))
+    return <ResonanceRpg spec={spec} onProgress={onProgress} />;
   const seed = spec.art.seed || 1;
   const playable = {
     ...spec,
@@ -1032,14 +1131,20 @@ function TankGame({
 }) {
   const [pos, setPos] = useState({ x: 10, y: 72 }),
     [enemies, setEnemies] = useState(spec.enemies),
-    [shots, setShots] = useState(0);
-  const move = (dx: number, dy: number) =>
+    [shots, setShots] = useState(0),
+    [direction, setDirection] = useState(0),
+    [muzzleFlash, setMuzzleFlash] = useState(false);
+  const move = (dx: number, dy: number) => {
+    setDirection(dx > 0 ? 90 : dx < 0 ? -90 : dy > 0 ? 180 : 0);
     setPos((p) => ({
       x: Math.max(4, Math.min(92, p.x + dx)),
       y: Math.max(8, Math.min(86, p.y + dy)),
     }));
+  };
   const fire = () => {
     setShots((s) => s + 1);
+    setMuzzleFlash(true);
+    window.setTimeout(() => setMuzzleFlash(false), 160);
     setEnemies((es) => es.slice(1));
     onProgress({
       pos,
@@ -1055,6 +1160,15 @@ function TankGame({
         <span>SHELLS {shots}</span>
       </div>
       <div className="engine-world tank-world">
+        <div className="battlefield-road" />
+        <i className="battlefield-crater crater-one" />
+        <i className="battlefield-crater crater-two" />
+        <i className="battlefield-crater crater-three" />
+        <div className="battlefield-grass grass-one" />
+        <div className="battlefield-grass grass-two" />
+        <div className="battlefield-sandbags" aria-hidden="true">
+          <i /><i /><i /><i /><i />
+        </div>
         {spec.cover.map((c: any, i: number) => (
           <i
             className="tank-cover"
@@ -1072,15 +1186,28 @@ function TankGame({
             className="tank enemy-tank"
             key={i}
             style={{ left: `${e.x}%`, top: `${e.y}%` }}
+            aria-label="Red enemy tank"
           >
-            ◆
+            <i className="tank-tracks" />
+            <i className="tank-hull" />
+            <i className="tank-turret"><span /></i>
+            <em className="tank-team-mark">E</em>
           </b>
         ))}
         <b
-          className="tank player-tank"
-          style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+          className={`tank player-tank ${muzzleFlash ? "is-firing" : ""}`}
+          style={{
+            left: `${pos.x}%`,
+            top: `${pos.y}%`,
+            rotate: `${direction}deg`,
+          }}
+          aria-label="Green player tank"
         >
-          ▲
+          <i className="tank-tracks" />
+          <i className="tank-hull" />
+          <i className="tank-turret"><span /></i>
+          <em className="tank-team-mark">P</em>
+          <i className="muzzle-flash" />
         </b>
       </div>
       <GameControls move={move} />
@@ -1094,6 +1221,113 @@ function TankGame({
           ? "Use cover and destroy enemy armor."
           : "Arena cleared!"}
       </p>
+    </>
+  );
+}
+
+function CardGame({
+  spec,
+  onProgress,
+}: {
+  spec: GameSpec;
+  onProgress: (p: any) => void;
+}) {
+  const [opponentHp, setOpponentHp] = useState(spec.opponent.hp),
+    [energy, setEnergy] = useState(spec.energy),
+    [turn, setTurn] = useState(1),
+    [hand, setHand] = useState(spec.deck.slice(0, spec.handSize));
+  const play = (card: string) => {
+    if (energy <= 0 || opponentHp <= 0) return;
+    const damage = /strike|spark|echo/.test(card) ? 4 : 2,
+      nextHp = Math.max(0, opponentHp - damage);
+    setOpponentHp(nextHp);
+    setEnergy((value: number) => value - 1);
+    setHand((cards: string[]) => cards.filter((value) => value !== card));
+    onProgress({ turn, opponentHp: nextHp, card });
+  };
+  const endTurn = () => {
+    const nextTurn = turn + 1;
+    setTurn(nextTurn);
+    setEnergy(spec.energy);
+    setHand(spec.deck.slice((nextTurn - 1) % spec.deck.length).concat(spec.deck).slice(0, spec.handSize));
+    onProgress({ turn: nextTurn, opponentHp });
+  };
+  return (
+    <>
+      <div className="genre-hud card-hud">
+        <span>TURN {turn}</span>
+        <span>ENERGY {energy}/{spec.energy}</span>
+        <span>CHRONOVORE {opponentHp} HP</span>
+      </div>
+      <div className="engine-world card-world">
+        <div className="card-opponent" aria-label="Chronovore opponent">
+          <i className="gravity-orbit" />
+          <strong>CHRONOVORE</strong>
+          <span>{opponentHp > 0 ? `${opponentHp} HP` : "DEFEATED"}</span>
+        </div>
+        <div className="card-hand" aria-label="Player hand">
+          {hand.map((card: string) => (
+            <button key={card} onClick={() => play(card)} disabled={!energy || !opponentHp}>
+              <i>✦</i><strong>{card}</strong><small>1 ENERGY</small>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="rogue-actions">
+        <button onClick={endTurn}>END TURN</button>
+      </div>
+      <p className="runtime-status">
+        {opponentHp ? "Manipulate time and gravity to defeat the Chronovore." : "Paradox resolved — victory!"}
+      </p>
+    </>
+  );
+}
+
+function NarrativeGame({
+  spec,
+  onProgress,
+}: {
+  spec: GameSpec;
+  onProgress: (p: any) => void;
+}) {
+  const [nodeId, setNodeId] = useState(spec.startNode),
+    [memories, setMemories] = useState(3),
+    node = spec.nodes[nodeId];
+  const choose = (choice: any) => {
+    const next = spec.nodes[choice.next];
+    setNodeId(choice.next);
+    if (/hide|trade|memory/i.test(choice.label)) setMemories((value: number) => Math.max(0, value - 1));
+    onProgress({ node: choice.next, ending: next?.ending || null, choice: choice.label });
+  };
+  const restart = () => {
+    setNodeId(spec.startNode);
+    setMemories(3);
+    onProgress({ node: spec.startNode, restarted: true });
+  };
+  return (
+    <>
+      <div className="genre-hud narrative-hud">
+        <span>ETERNAL MOON</span>
+        <span>MEMORIES {memories}</span>
+        <span>{node.ending ? `ENDING · ${node.ending.toUpperCase()}` : "STORY IN PROGRESS"}</span>
+      </div>
+      <div className="engine-world narrative-world">
+        <div className="moon-disc" />
+        <div className="night-town"><i /><i /><i /><i /><i /></div>
+        <div className="memory-merchant" aria-label="Memory merchant portrait"><i>☾</i></div>
+        <article className="dialogue-panel">
+          <small>{node.ending ? "THE TOWN REMEMBERS" : "A VOICE IN THE ETERNAL NIGHT"}</small>
+          <p>{node.text}</p>
+          {node.choices?.length ? (
+            <div className="dialogue-choices">
+              {node.choices.map((choice: any) => (
+                <button key={choice.label} onClick={() => choose(choice)}>{choice.label}</button>
+              ))}
+            </div>
+          ) : <button onClick={restart}>BEGIN ANOTHER MEMORY</button>}
+        </article>
+      </div>
+      <p className="runtime-status">Choose carefully. Every decision changes what the town remembers.</p>
     </>
   );
 }
@@ -1356,31 +1590,67 @@ function Runtime({
   spec: GameSpec;
   onProgress: (p: any) => void;
 }) {
-  const generated = spec.art.generated || {};
+  const generated = spec.art.generated || {},
+    audioPlan = useMemo(() => compileAudioPlan(spec), [spec]),
+    audioRef = useRef<any>(null),
+    lastCueRef = useRef(""),
+    [audioOn, setAudioOn] = useState(false);
+  useEffect(() => {
+    audioRef.current?.destroy();
+    audioRef.current = createProceduralAudioEngine(audioPlan, window);
+    setAudioOn(false);
+    return () => {
+      audioRef.current?.destroy();
+      audioRef.current = null;
+    };
+  }, [audioPlan]);
+  const toggleAudio = async () => {
+    if (audioOn) {
+      await audioRef.current?.pause();
+      setAudioOn(false);
+    } else {
+      const started = await audioRef.current?.start();
+      setAudioOn(!!started);
+      audioRef.current?.playCue("interact");
+    }
+  };
+  const progressWithAudio = (progress: any) => {
+    const cue = deriveAudioCue(progress),
+      signature = cue ? `${cue}:${progress.event || ""}:${progress.bossHp ?? ""}:${progress.shots ?? ""}` : "";
+    if (cue && signature !== lastCueRef.current) {
+      audioRef.current?.playCue(cue);
+      lastCueRef.current = signature;
+    }
+    onProgress(progress);
+  };
   let game: React.ReactNode;
   if (spec.template === "platformer")
-    game = <Platformer spec={spec} onProgress={onProgress} />;
+    game = <Platformer spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "metroidvania")
-    game = <Metroidvania spec={spec} onProgress={onProgress} />;
+    game = <Metroidvania spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "roguelike")
-    game = <Roguelike spec={spec} onProgress={onProgress} />;
+    game = <Roguelike spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "shooter")
-    game = <Shooter spec={spec} onProgress={onProgress} />;
+    game = <Shooter spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "snake")
-    game = <SnakeGame spec={spec} onProgress={onProgress} />;
+    game = <SnakeGame spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "falling_blocks")
-    game = <FallingBlocks spec={spec} onProgress={onProgress} />;
+    game = <FallingBlocks spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "tank")
-    game = <TankGame spec={spec} onProgress={onProgress} />;
+    game = <TankGame spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "tennis")
-    game = <TennisGame spec={spec} onProgress={onProgress} />;
+    game = <TennisGame spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "racing")
-    game = <RacingGame spec={spec} onProgress={onProgress} />;
+    game = <RacingGame spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "rpg")
-    game = <RpgGame spec={spec} onProgress={onProgress} />;
+    game = <RpgGame spec={spec} onProgress={progressWithAudio} />;
+  else if (spec.template === "card")
+    game = <CardGame spec={spec} onProgress={progressWithAudio} />;
+  else if (spec.template === "narrative")
+    game = <NarrativeGame spec={spec} onProgress={progressWithAudio} />;
   else if (spec.template === "puzzle")
-    game = <Puzzle spec={spec} onProgress={onProgress} />;
-  else game = <TopDown spec={spec} onProgress={onProgress} />;
+    game = <Puzzle spec={spec} onProgress={progressWithAudio} />;
+  else game = <TopDown spec={spec} onProgress={progressWithAudio} />;
   return (
     <div
       className={`art-runtime ${generated.environment ? "has-generated-environment" : ""} ${generated.hero ? "has-generated-hero" : ""}`}
@@ -1395,6 +1665,17 @@ function Runtime({
         } as React.CSSProperties
       }
     >
+      <div className="game-audio-bar">
+        <button
+          className={audioOn ? "audio-active" : ""}
+          onClick={toggleAudio}
+          aria-label={audioOn ? "Mute adaptive soundtrack" : "Enable adaptive soundtrack"}
+        >
+          {audioOn ? "♫ SOUND ON" : "♪ ENABLE SOUND"}
+        </button>
+        <span>{audioPlan.template.replaceAll("_", " ")} · {audioPlan.bpm} BPM · {audioPlan.scale}</span>
+        <em>{audioPlan.ambience}</em>
+      </div>
       {game}
     </div>
   );

@@ -22,6 +22,14 @@ test("compiler selects all three gameplay templates", () => {
   );
 });
 
+test("explicit prompt titles do not retain the Title label", () => {
+  const spec = compileGameSpec(
+    "Title: Steamvine Sanctuary. A 2D steampunk metroidvania in ancient ruins.",
+    "metroidvania",
+  );
+  assert.equal(spec.title, "Steamvine Sanctuary");
+});
+
 test("clocktower platforming prompt preserves identity and moving gear hazards", () => {
   const prompt = "A 2D clocktower ascent game where each floor is a short platforming challenge and gears act as moving hazards.";
   const spec = compileGameSpec(prompt);
