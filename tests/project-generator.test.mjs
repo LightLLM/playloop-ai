@@ -4,6 +4,7 @@ import ts from "typescript";
 import { fileURLToPath } from "node:url";
 import { compileGameSpec, validateGameSpec } from "../app/game-engine.mjs";
 import {
+  enhancePreviewWithGeneratedArt,
   generatePreviewHtml,
   generateProject,
   projectFingerprint,
@@ -139,4 +140,18 @@ test("standalone preview is playable, lifecycle-aware, and network isolated", ()
   assert.match(html, /game\.victory/);
   assert.match(html, /game\.restarted/);
   assert.doesNotMatch(html, /(?:src|href)=["']https?:\/\//i);
+});
+
+test("cyber Metroidvania preview uses the curated Neon Sentinel artwork", () => {
+  const spec = compileGameSpec(
+      "Neon Sentinel is a cyberpunk Metroidvania with a runner and plasma combat",
+      "metroidvania",
+    ),
+    html = enhancePreviewWithGeneratedArt(generatePreviewHtml(spec), spec);
+  assert.match(
+    html,
+    /game-art\/neon-sentinel\/sector-09-background-v1\.png/,
+  );
+  assert.match(html, /game-art\/neon-sentinel\/runner-atlas-v1\.png/);
+  assert.match(html, /generatedArt\.spritesheet/);
 });

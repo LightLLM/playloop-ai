@@ -215,8 +215,17 @@ export function enhancePreviewWithGeneratedArt(html, spec) {
       ([, url]) => typeof url === "string" && url.startsWith("/api/assets?id="),
     ),
   );
-  if (!Object.keys(generated).length) return html;
-  const setup = `const generatedArt={};for(const[kind,url]of Object.entries(${safeJson(generated)})){const image=new Image();image.src=url;generatedArt[kind]=image}`;
+  const curated =
+    spec?.template === "metroidvania" && spec?.theme === "cyber"
+      ? {
+          environment:
+            "/game-art/neon-sentinel/sector-09-background-v1.png",
+          spritesheet: "/game-art/neon-sentinel/runner-atlas-v1.png",
+        }
+      : {};
+  const art = { ...curated, ...generated };
+  if (!Object.keys(art).length) return html;
+  const setup = `const generatedArt={};for(const[kind,url]of Object.entries(${safeJson(art)})){const image=new Image();image.src=url;generatedArt[kind]=image}`;
   return html
     .replace("<script>", `<script>${setup}`)
     .replace(
@@ -225,7 +234,7 @@ export function enhancePreviewWithGeneratedArt(html, spec) {
     )
     .replace(
       "ctx.fillRect(player.x-16,player.y-22,32,44);",
-      "if(generatedArt.hero?.complete)ctx.drawImage(generatedArt.hero,player.x-24,player.y-28,48,56);else ctx.fillRect(player.x-16,player.y-22,32,44);",
+      "if(generatedArt.hero?.complete)ctx.drawImage(generatedArt.hero,player.x-24,player.y-28,48,56);else if(generatedArt.spritesheet?.complete)ctx.drawImage(generatedArt.spritesheet,0,0,256,256,player.x-28,player.y-34,56,56);else ctx.fillRect(player.x-16,player.y-22,32,44);",
     );
 }
 
