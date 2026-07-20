@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "0.2.0",
+  "id": "signal-beyond-kepler",
+  "title": "Signal Beyond Kepler",
+  "genre": "science_fiction_mystery",
+  "objective": "Recover the signal fragment, then speak with AURA-7.",
+  "artDirection": {
+    "mode": "illustrated_adventure",
+    "palette": ["#070a12", "#10182b", "#8c7bff", "#f4f7ff"],
+    "camera": "top_down",
+    "originality": "original world; no franchise characters, logos, or designs"
+  },
+  "audio": {
+    "ambience": "station_hum",
+    "music": "deep_space_exploration",
+    "effects": ["ui_confirm", "clue_found", "character_reply"]
+  },
+  "player": { "start": { "x": 88, "y": 300 }, "speed": 168 },
+  "characters": [
+    {
+      "id": "aura-7",
+      "name": "AURA-7, Ship Navigator",
+      "position": { "x": 555, "y": 122 },
+      "goal": "Understand the signal while keeping the crew safe",
+      "knowledge": ["launch_code", "navigation_archive"],
+      "trust": 42
+    }
+  ],
+  "items": [
+    { "id": "signal_fragment", "label": "Signal fragment", "position": { "x": 474, "y": 332 } }
+  ],
+  "quests": [
+    {
+      "id": "restore_signal",
+      "steps": ["collect:signal_fragment", "talk:aura-7"],
+      "completion": "unlock:navigation_route"
+    }
+  ],
+  "safety": { "rating": "general", "allowGambling": false, "allowExplicitContent": false }
+}

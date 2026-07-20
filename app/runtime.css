@@ -1,0 +1,48 @@
+.game-sandbox {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16/9;
+  border: 0;
+  background: #080b12;
+}
+.sandbox-status {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid #252c39;
+  border-bottom: 1px solid #252c39;
+  color: #8991a0;
+  font: 700 10px var(--font-geist-mono);
+  letter-spacing: 0.1em;
+}
+.sandbox-status b {
+  color: var(--lime);
+}
+@media (max-width: 760px) {
+  .ready-screen {
+    width: 100%;
+    padding: 28px 14px 55px;
+    overflow-x: hidden;
+  }
+  .ready-head {
+    flex-direction: column;
+  }
+  .ready-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .game-frame {
+    width: 100%;
+    max-width: 100%;
+  }
+  .game-sandbox {
+    min-height: 190px;
+  }
+  .version-panel {
+    max-width: 100%;
+    overflow: hidden;
+  }
+}

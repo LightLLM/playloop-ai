@@ -1,0 +1,1 @@
+CREATE TABLE `sandbox_results` (`job_id` text PRIMARY KEY NOT NULL,`version_id` text NOT NULL,`status` text NOT NULL,`stage` text NOT NULL,`report_json` text NOT NULL,`created_at` text NOT NULL DEFAULT CURRENT_TIMESTAMP);

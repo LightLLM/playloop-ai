@@ -1,0 +1,221 @@
+function safeJson(value) {
+  return JSON.stringify(value, null, 2).replace(/<\//g, "<\\/");
+}
+
+export function generateProject(spec) {
+  const pkg = {
+    name: spec.id,
+    private: true,
+    version: "1.0.0",
+    type: "module",
+    scripts: {
+      dev: "vite",
+      preview: "vite preview",
+      build: "tsc --noEmit && vite build",
+      qa: "playwright test",
+    },
+    dependencies: { phaser: "3.90.0" },
+    devDependencies: {
+      typescript: "^5.9.0",
+      vite: "^8.0.0",
+      "@playwright/test": "1.58.2",
+    },
+  };
+  const source = `import Phaser from "phaser";
+import specData from "../game-spec.json";
+
+const spec:any=specData, W=960, H=540, color=(hex:string)=>Phaser.Display.Color.HexStringToColor(hex).color;
+class GeneratedGame extends Phaser.Scene {
+  player!:Phaser.Physics.Arcade.Sprite; cursors!:Phaser.Types.Input.Keyboard.CursorKeys; keys:any; platforms?:Phaser.Physics.Arcade.StaticGroup; touch={left:false,right:false,up:false,down:false,action:false};
+  score=0; snake:{x:number,y:number}[]=[]; direction={x:1,y:0}; food={x:13,y:7}; tick=0; ball?:Phaser.Physics.Arcade.Sprite; rival?:Phaser.Physics.Arcade.Sprite; frameCount=0;startedAt=performance.now();lifecycle="boot";kit:any={};audioUnlocked=false;
+  preload(){for(const [kind,url] of Object.entries(spec.art.generated||{}))if(typeof url==="string"&&(url.startsWith("/api/assets?id=")||url.startsWith("/generated/"))){if(kind==="spritesheet")this.load.spritesheet("generated-spritesheet",url,{frameWidth:256,frameHeight:256});else this.load.image("generated-"+kind,url)}}
+  create(){
+    this.cameras.main.setBackgroundColor(spec.art.palette[0]); this.makeTextures();
+    if(this.textures.exists("generated-environment"))this.add.image(W/2,H/2,"generated-environment").setDisplaySize(W,H).setAlpha(.72);
+    this.add.text(20,16,spec.title,{fontFamily:"monospace",fontSize:"22px",color:spec.art.palette[2]}).setDepth(20);
+    this.add.text(20,46,spec.objective,{fontFamily:"sans-serif",fontSize:"13px",color:"#ffffff",wordWrap:{width:720}}).setDepth(20);
+    this.cursors=this.input.keyboard!.createCursorKeys(); this.keys=this.input.keyboard!.addKeys("W,A,S,D,SPACE,R"); this.createTouchControls();this.installQaContract();
+    if(spec.template==="snake") return this.createSnake();
+    if(spec.template==="falling_blocks") return this.createBlocks();
+    if(spec.template==="tennis") return this.createTennis();
+    if(spec.template==="puzzle")return this.createPuzzle();
+    if(spec.template==="card")return this.createCard();
+    if(spec.template==="narrative")return this.createNarrative();
+    if(spec.template==="strategy")return this.createStrategy();
+    if(spec.template==="simulation")return this.createSimulation();
+    if(spec.template==="rpg")return this.createRpg();
+    if(spec.template==="roguelike")return this.createRoguelike();
+    if(spec.template==="racing")return this.createRacing();
+    this.createWorld();
+  }
+  makeTextures(){
+    const g=this.make.graphics({x:0,y:0},false); g.fillStyle(color(spec.art.palette[1])).fillRoundedRect(0,0,32,40,8);g.fillStyle(0xffffff).fillRect(7,10,5,5).fillRect(20,10,5,5);g.generateTexture("hero",32,40);g.clear();
+    g.fillStyle(color(spec.art.palette[2])).fillRoundedRect(0,0,48,16,5);g.generateTexture("ground",48,16);g.clear();
+    g.fillStyle(0xff496c).fillCircle(8,8,8);g.generateTexture("danger",16,16);g.clear();g.fillStyle(0xffffff).fillCircle(6,6,6);g.generateTexture("ball",12,12);g.destroy();
+  }
+  record(event:string){const root=window as any;root.__PLAYLOOP_EVENTS__=root.__PLAYLOOP_EVENTS__||[];root.__PLAYLOOP_EVENTS__.push(event)}
+  installQaContract(){this.lifecycle="playing";this.record("preview.ready");this.input.keyboard!.on("keydown",(event:KeyboardEvent)=>{this.record("key:"+event.key);this.unlockAudio()});this.input.once("pointerdown",()=>this.unlockAudio());const root=window as any;root.__PLAYLOOP__={state:()=>this.lifecycle,events:()=>[...(root.__PLAYLOOP_EVENTS__||[])],position:()=>this.player?{x:this.player.x,y:this.player.y}:this.snake[0]||null,animation:()=>this.player?.anims.currentAnim?.key||"static",restart:()=>{this.record("game.restarted");this.scene.restart()},win:()=>this.finish("victory"),lose:()=>this.finish("failure"),metrics:()=>({fps:this.frameCount/Math.max(.001,(performance.now()-this.startedAt)/1000),frames:this.frameCount}),save:()=>JSON.parse(localStorage.getItem("playloop-save")||"null")}}
+  unlockAudio(){if(this.audioUnlocked)return;this.audioUnlocked=true;this.tone(220,.08);try{if("speechSynthesis" in window){const line=new SpeechSynthesisUtterance(spec.objective);line.rate=1.05;line.volume=.45;speechSynthesis.speak(line)}}catch{}}
+  tone(frequency:number,duration=.12){try{const AudioContextCtor=(window.AudioContext||(window as any).webkitAudioContext),audio=new AudioContextCtor(),osc=audio.createOscillator(),gain=audio.createGain();osc.type="square";osc.frequency.value=frequency;gain.gain.setValueAtTime(.045,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);osc.connect(gain).connect(audio.destination);osc.start();osc.stop(audio.currentTime+duration);osc.onended=()=>audio.close()}catch{}}
+  finish(state:"victory"|"failure"){if(this.lifecycle!=="playing")return;this.lifecycle=state;this.physics.pause();this.record("game."+state);this.tone(state==="victory"?740:130,.28);const previous=JSON.parse(localStorage.getItem("playloop-save")||"{}"),achievements=new Set<string>(previous.achievements||[]);achievements.add(state==="victory"?"first_victory":"first_run");if(this.score>=100)achievements.add("score_100");const save={...previous,lastState:state,highScore:Math.max(Number(previous.highScore||0),this.score),achievements:[...achievements],updatedAt:Date.now()};localStorage.setItem("playloop-save",JSON.stringify(save));parent.postMessage({source:"playloop-preview",type:"game."+state,detail:{score:this.score,highScore:save.highScore,achievements:save.achievements,template:spec.template}},"*");this.add.rectangle(W/2,H/2,460,190,0x080b12,.94).setDepth(80);this.add.text(W/2,H/2-25,state.toUpperCase(),{fontFamily:"monospace",fontSize:"42px",color:state==="victory"?spec.art.palette[2]:"#ff496c"}).setOrigin(.5).setDepth(81);this.add.text(W/2,H/2+35,"Press R to restart",{fontFamily:"sans-serif",fontSize:"18px",color:"#fff"}).setOrigin(.5).setDepth(81)}
+  createTouchControls(){const controls:[number,number,string,keyof typeof this.touch][]=[[55,H-55,"←","left"],[115,H-55,"→","right"],[W-115,H-55,"↑","up"],[W-55,H-55,"●","action"]];for(const[x,y,label,key]of controls){const button=this.add.circle(x,y,28,0x101522,.72).setStrokeStyle(2,0xffffff,.55).setDepth(50).setInteractive();this.add.text(x,y,label,{fontSize:"24px",color:"#fff"}).setOrigin(.5).setDepth(51);button.on("pointerdown",()=>{this.touch[key]=true;this.record("touch:"+key)});button.on("pointerup",()=>this.touch[key]=false);button.on("pointerout",()=>this.touch[key]=false)}}
+  createWorld(){
+    const platformMode=["platformer","metroidvania"].includes(spec.template); this.physics.world.gravity.y=platformMode?900:0;
+    this.platforms=this.physics.add.staticGroup();
+    if(platformMode){for(const p of spec.platforms||[{x:0,y:86,w:30}]){const x=p.x/240*W,y=p.y/100*H,w=Math.max(48,p.w/240*W);this.add.rectangle(x+w/2,y,w,18,color(spec.art.palette[2]));const body=this.add.zone(x+w/2,y,w,18);this.physics.add.existing(body,true);this.platforms.add(body)}}
+    else {for(let i=0;i<12;i++)this.add.rectangle(100+(i%4)*220,140+Math.floor(i/4)*150,120,18,color(spec.art.palette[2])).setAlpha(.35)}
+    const animated=this.textures.exists("generated-spritesheet"),heroTexture=animated?"generated-spritesheet":this.textures.exists("generated-hero")?"generated-hero":"hero";if(animated){this.anims.create({key:"idle",frames:this.anims.generateFrameNumbers("generated-spritesheet",{start:0,end:3}),frameRate:5,repeat:-1});this.anims.create({key:"walk",frames:this.anims.generateFrameNumbers("generated-spritesheet",{start:4,end:7}),frameRate:10,repeat:-1});this.anims.create({key:"action",frames:this.anims.generateFrameNumbers("generated-spritesheet",{start:8,end:11}),frameRate:12,repeat:0})}this.player=this.physics.add.sprite(120,platformMode?360:270,heroTexture).setDisplaySize(38,48).setCollideWorldBounds(true);if(animated)this.player.play("idle");if(platformMode)this.physics.add.collider(this.player,this.platforms);
+    this.kit.collectibleGoal=(spec.collectibles||[]).length;this.kit.enemies=this.physics.add.group();this.kit.bullets=this.physics.add.group();this.kit.lastShot=0;
+    for(const item of spec.collectibles||[]){const x=(item.x/(spec.world?.width||100))*W,y=(item.y/(spec.world?.height||100))*H;const gem=this.physics.add.sprite(x,y,"ball").setTint(color(spec.art.palette[2]));this.physics.add.overlap(this.player,gem,()=>{gem.destroy();this.score++;this.events.emit("score",this.score);if(this.score>=this.kit.collectibleGoal)this.finish("victory")})}
+    if(platformMode){const playerBody=this.player.body as Phaser.Physics.Arcade.Body;playerBody.checkCollision.down=false;if(spec.goal){const goal=this.add.zone(spec.goal.x/spec.world.width*W,spec.goal.y/spec.world.height*H,42,90);this.physics.add.existing(goal,true);this.physics.add.overlap(this.player,goal,()=>this.finish("victory"))}}
+    if(spec.template==="tank"||spec.template==="shooter"){for(const e of spec.enemies||[]){const enemy=this.physics.add.sprite(e.x/100*W,e.y/100*H,this.textures.exists("generated-props")?"generated-props":"danger").setDisplaySize(36,36);enemy.setData("hp",e.hp||1);this.kit.enemies.add(enemy)}this.physics.add.overlap(this.kit.bullets,this.kit.enemies,(bullet:any,enemy:any)=>{bullet.destroy();const hp=enemy.getData("hp")-1;enemy.setData("hp",hp);if(hp<=0){enemy.destroy();this.score+=25;if(this.kit.enemies.countActive(true)===0)this.finish("victory")}})}
+    if(spec.template==="metroidvania"){this.kit.abilities=new Set();for(const ability of spec.abilities){const pickup=this.add.circle(ability.x/spec.world.width*W,260,18,color(spec.art.palette[2])).setInteractive();pickup.on("pointerdown",()=>{this.kit.abilities.add(ability.id);pickup.destroy();this.record("ability:"+ability.id)});this.physics.add.overlap(this.player,pickup as any,()=>pickup.emit("pointerdown"))}const boss=this.physics.add.sprite(spec.boss.x/spec.world.width*W,250,"danger").setData("hp",spec.boss.hp);this.kit.enemies.add(boss);this.physics.add.overlap(this.kit.bullets,boss,(bullet:any,target:any)=>{bullet.destroy();const hp=target.getData("hp")-1;target.setData("hp",hp);if(hp<=0){target.destroy();this.finish("victory")}})}
+  }
+  fire(time:number){if(time<this.kit.lastShot||!this.player)return;this.kit.lastShot=time+(spec.fireRate||spec.shells?.cooldownMs||300);const bullet=this.physics.add.sprite(this.player.x+28,this.player.y,"ball").setVelocityX(spec.shells?.speed?spec.shells.speed*45:520);this.kit.bullets.add(bullet);this.record("action:fire");this.tone(320,.05)}
+  createSnake(){this.physics.world.gravity.y=0;this.snake=(spec.snake.start as any[]).map(v=>({...v}));this.food={...spec.food};}
+  createBlocks(){this.physics.world.gravity.y=0;this.kit.board=Array.from({length:spec.board.rows},()=>Array(spec.board.cols).fill(0));this.kit.active={x:4,y:0,shape:[[0,0],[1,0],[0,1],[1,1]]};this.kit.dropAt=0;this.kit.cells=[];this.renderBlocks()}
+  renderBlocks(){for(const cell of this.kit.cells||[])cell.destroy();this.kit.cells=[];const size=24,ox=(W-spec.board.cols*size)/2,oy=82,active=this.kit.active;for(let y=0;y<spec.board.rows;y++)for(let x=0;x<spec.board.cols;x++)if(this.kit.board[y][x])this.kit.cells.push(this.add.rectangle(ox+x*size,oy+y*size,size-2,size-2,color(spec.art.palette[1])).setOrigin(0));for(const[pX,pY]of active.shape)this.kit.cells.push(this.add.rectangle(ox+(active.x+pX)*size,oy+(active.y+pY)*size,size-2,size-2,color(spec.art.palette[2])).setOrigin(0))}
+  blockFits(x:number,y:number){return this.kit.active.shape.every(([dx,dy]:number[])=>x+dx>=0&&x+dx<spec.board.cols&&y+dy<spec.board.rows&&(y+dy<0||!this.kit.board[y+dy][x+dx]))}
+  updateBlocks(time:number){const active=this.kit.active;if(Phaser.Input.Keyboard.JustDown(this.cursors.left)||this.touch.left){if(this.blockFits(active.x-1,active.y))active.x--;this.touch.left=false}if(Phaser.Input.Keyboard.JustDown(this.cursors.right)||this.touch.right){if(this.blockFits(active.x+1,active.y))active.x++;this.touch.right=false}if(time<this.kit.dropAt)return;this.kit.dropAt=time+(this.cursors.down.isDown?80:spec.gravityMs);if(this.blockFits(active.x,active.y+1))active.y++;else{for(const[dx,dy]of active.shape){if(active.y+dy<=0)return this.finish("failure");this.kit.board[active.y+dy][active.x+dx]=1}const before=this.kit.board.length;this.kit.board=this.kit.board.filter((row:number[])=>row.some(v=>!v));const cleared=before-this.kit.board.length;while(this.kit.board.length<spec.board.rows)this.kit.board.unshift(Array(spec.board.cols).fill(0));this.score+=spec.scoring[["line","line","double","triple","quad"][cleared]||"line"]||0;if(this.score>=300)this.finish("victory");this.kit.active={x:4,y:0,shape:[[0,0],[1,0],[0,1],[1,1]]}}this.renderBlocks()}
+  createPuzzle(){this.physics.world.gravity.y=0;this.kit.values=[...spec.puzzle.initial];this.kit.cells=[];this.kit.moves=0;this.renderPuzzle()}
+  renderPuzzle(){for(const cell of this.kit.cells||[])cell.destroy();this.kit.cells=[];const size=92,ox=W/2-size,oy=135;for(let i=0;i<9;i++){const x=ox+(i%3)*size,y=oy+Math.floor(i/3)*size,cell=this.add.rectangle(x,y,size-8,size-8,this.kit.values[i]?color(spec.art.palette[2]):0x20283a).setInteractive();cell.on("pointerdown",()=>this.togglePuzzleCell(i));this.kit.cells.push(cell)}this.kit.cells.push(this.add.text(24,92,"MOVES "+this.kit.moves,{fontFamily:"monospace",color:"#fff"}))}
+  togglePuzzleCell(index:number){const row=Math.floor(index/3),col=index%3;for(const[r,c]of[[row,col],[row-1,col],[row+1,col],[row,col-1],[row,col+1]])if(r>=0&&r<3&&c>=0&&c<3){const i=r*3+c;this.kit.values[i]=!this.kit.values[i]}this.kit.moves++;this.score=Math.max(0,1000-this.kit.moves*25);this.renderPuzzle();if(this.kit.values.every((value:boolean)=>!value))this.finish("victory")}
+  createCard(){this.physics.world.gravity.y=0;this.kit.playerHp=20;this.kit.enemyHp=spec.opponent.hp;this.kit.energy=spec.energy;this.kit.deck=[...spec.deck];this.kit.hand=this.kit.deck.slice(0,spec.handSize);this.kit.ui=[];this.renderCard()}
+  renderCard(){for(const item of this.kit.ui||[])item.destroy();this.kit.ui=[];this.kit.ui.push(this.add.text(30,95,"YOU "+this.kit.playerHp+" HP   ENERGY "+this.kit.energy+"     RIVAL "+this.kit.enemyHp+" HP",{fontFamily:"monospace",fontSize:"20px",color:"#fff"}));this.kit.hand.forEach((name:string,index:number)=>{const x=150+index*175,card=this.add.rectangle(x,330,145,190,color(spec.art.palette[index%3])).setStrokeStyle(3,0xffffff,.45).setInteractive();const label=this.add.text(x,330,name.toUpperCase(),{fontFamily:"monospace",fontSize:"18px",color:"#fff",align:"center",wordWrap:{width:120}}).setOrigin(.5);card.on("pointerdown",()=>this.playCard(index));this.kit.ui.push(card,label)});const end=this.add.text(W-150,105,"END TURN",{fontFamily:"monospace",backgroundColor:"#283246",padding:{x:12,y:8},color:"#fff"}).setInteractive();end.on("pointerdown",()=>this.endCardTurn());this.kit.ui.push(end)}
+  playCard(index:number){if(this.kit.energy<=0)return;const card=this.kit.hand[index];if(["strike","spark","echo"].includes(card))this.kit.enemyHp-=card==="spark"?3:2;if(card==="mend")this.kit.playerHp=Math.min(20,this.kit.playerHp+3);if(card==="guard"||card==="ward")this.kit.guard=2;this.kit.energy--;this.score+=10;if(this.kit.enemyHp<=0)return this.finish("victory");this.renderCard()}
+  endCardTurn(){this.kit.playerHp-=Math.max(0,3-(this.kit.guard||0));this.kit.guard=0;if(this.kit.playerHp<=0)return this.finish("failure");this.kit.energy=spec.energy;this.kit.deck.push(this.kit.deck.shift());this.kit.hand=this.kit.deck.slice(0,spec.handSize);this.renderCard()}
+  createNarrative(){this.physics.world.gravity.y=0;this.kit.node=spec.startNode;this.kit.ui=[];this.renderNarrative()}
+  renderNarrative(){for(const item of this.kit.ui||[])item.destroy();this.kit.ui=[];const node=spec.nodes[this.kit.node];this.kit.ui.push(this.add.rectangle(W/2,H/2,760,300,0x111827,.94),this.add.text(W/2,190,node.text,{fontFamily:"sans-serif",fontSize:"28px",color:"#fff",wordWrap:{width:680},align:"center"}).setOrigin(.5));if(node.ending){this.score=100;this.add.text(W/2,310,"ENDING: "+String(node.ending).toUpperCase(),{fontFamily:"monospace",fontSize:"24px",color:spec.art.palette[2]}).setOrigin(.5);return this.finish("victory")}node.choices.forEach((choice:any,index:number)=>{const button=this.add.text(W/2,300+index*65,choice.label,{fontFamily:"monospace",fontSize:"20px",backgroundColor:"#283246",padding:{x:22,y:12},color:"#fff"}).setOrigin(.5).setInteractive();button.on("pointerdown",()=>{this.kit.node=choice.next;this.record("choice:"+choice.label);this.renderNarrative()});this.kit.ui.push(button)})}
+  createStrategy(){this.physics.world.gravity.y=0;this.kit.resources=spec.resources.start;this.kit.coreHp=spec.core.hp;this.kit.units=[];this.kit.wave=0;this.kit.ui=[];const cols=spec.grid.cols,rows=spec.grid.rows,size=42,ox=(W-cols*size)/2,oy=125;for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const cell=this.add.rectangle(ox+x*size,oy+y*size,size-3,size-3,0x182334).setOrigin(0).setStrokeStyle(1,0xffffff,.12).setInteractive();cell.on("pointerdown",()=>this.placeUnit(x,y));this.kit.ui.push(cell)}this.kit.status=this.add.text(20,88,"",{fontFamily:"monospace",fontSize:"18px",color:"#fff"});this.time.addEvent({delay:1400,loop:true,callback:()=>this.strategyTick()});this.updateStrategyStatus()}
+  placeUnit(x:number,y:number){const unit=spec.units[0];if(this.kit.resources<unit.cost||this.kit.units.some((v:any)=>v.x===x&&v.y===y))return;this.kit.resources-=unit.cost;this.kit.units.push({x,y,hp:unit.hp});this.add.circle((W-spec.grid.cols*42)/2+x*42+21,125+y*42+21,13,color(spec.art.palette[2]));this.updateStrategyStatus()}
+  strategyTick(){this.kit.resources+=spec.resources.income;this.kit.wave++;const attackers=spec.waves[Math.min(spec.waves.length-1,Math.floor(this.kit.wave/3))],blocked=this.kit.units.length;this.kit.coreHp-=Math.max(0,attackers-blocked);if(this.kit.coreHp<=0)return this.finish("failure");if(this.kit.wave>=9&&this.kit.coreHp>0)return this.finish("victory");this.score+=blocked*10;this.updateStrategyStatus()}
+  updateStrategyStatus(){this.kit.status.setText("RESOURCES "+this.kit.resources+"   CORE "+this.kit.coreHp+"   WAVE "+this.kit.wave+"/9")}
+  createSimulation(){this.physics.world.gravity.y=0;this.kit.coins=spec.resources.coins;this.kit.reputation=spec.resources.reputation;this.kit.level=spec.stations[0].level;this.kit.day=spec.clock.day;this.kit.status=this.add.text(30,95,"",{fontFamily:"monospace",fontSize:"20px",color:"#fff"});const work=this.add.rectangle(W/2-140,H/2,220,150,color(spec.art.palette[1])).setInteractive(),upgrade=this.add.rectangle(W/2+140,H/2,220,150,color(spec.art.palette[2])).setInteractive();this.add.text(W/2-140,H/2,"WORKBENCH\\nCreate order",{fontFamily:"monospace",fontSize:"20px",align:"center",color:"#fff"}).setOrigin(.5);this.add.text(W/2+140,H/2,"UPGRADE\\n80 coins",{fontFamily:"monospace",fontSize:"20px",align:"center",color:"#fff"}).setOrigin(.5);work.on("pointerdown",()=>{this.kit.coins+=5*this.kit.level;this.kit.reputation++;this.score+=20;if(this.kit.reputation>=3)this.finish("victory");this.updateSimulation()});upgrade.on("pointerdown",()=>{if(this.kit.coins>=80){this.kit.coins-=80;this.kit.level++;this.updateSimulation()}});this.time.addEvent({delay:3000,loop:true,callback:()=>{this.kit.day++;this.updateSimulation()}});this.updateSimulation()}
+  updateSimulation(){this.kit.status.setText("DAY "+this.kit.day+"   COINS "+this.kit.coins+"   REPUTATION "+this.kit.reputation+"/3   STATION LV."+this.kit.level)}
+  createRpg(){this.physics.world.gravity.y=0;this.kit.hp=spec.stats.hp;this.kit.xp=spec.stats.xp;this.kit.relics=0;this.kit.inventory=[...spec.inventory];this.player=this.physics.add.sprite(130,H/2,"hero").setCollideWorldBounds(true);this.kit.status=this.add.text(24,90,"",{fontFamily:"monospace",fontSize:"17px",color:"#fff"});this.add.text(W/2,105,spec.dialogue[0].text,{fontFamily:"sans-serif",fontSize:"19px",backgroundColor:"#111827",padding:{x:16,y:10},color:"#fff"}).setOrigin(.5);for(let i=0;i<3;i++){const relic=this.add.circle(350+i*170,300,22,color(spec.art.palette[2])).setInteractive();relic.on("pointerdown",()=>{if(!relic.active)return;relic.destroy();this.kit.relics++;this.kit.xp+=4;this.score+=50;this.updateRpgStatus();if(this.kit.relics>=spec.quests[0].goal){this.kit.inventory.push(spec.quests[0].reward);this.finish("victory")}})}this.updateRpgStatus()}
+  updateRpgStatus(){this.kit.status.setText("HP "+this.kit.hp+"   XP "+this.kit.xp+"   RELICS "+this.kit.relics+"/"+spec.quests[0].goal+"   BAG "+this.kit.inventory.join(", "))}
+  createRoguelike(){this.physics.world.gravity.y=0;this.kit.hero={x:0,y:0};this.kit.enemies=spec.enemies.map((e:any)=>({x:Math.abs(e.x)%spec.dungeon.size,y:Math.abs(e.y)%spec.dungeon.size,hp:e.hp}));this.kit.cells=[];const size=72,ox=(W-size*spec.dungeon.size)/2,oy=115;for(let y=0;y<spec.dungeon.size;y++)for(let x=0;x<spec.dungeon.size;x++)this.add.rectangle(ox+x*size,oy+y*size,size-4,size-4,0x172033).setOrigin(0).setStrokeStyle(1,0xffffff,.15);this.kit.heroShape=this.add.rectangle(ox+size/2,oy+size/2,32,32,color(spec.art.palette[2]));this.kit.enemyShapes=this.kit.enemies.map((e:any)=>this.add.circle(ox+(e.x+.5)*size,oy+(e.y+.5)*size,14,0xff496c));this.kit.ox=ox;this.kit.oy=oy;this.kit.size=size}
+  updateRoguelike(){let dx=0,dy=0;if(Phaser.Input.Keyboard.JustDown(this.cursors.left)){dx=-1}if(Phaser.Input.Keyboard.JustDown(this.cursors.right)){dx=1}if(Phaser.Input.Keyboard.JustDown(this.cursors.up)){dy=-1}if(Phaser.Input.Keyboard.JustDown(this.cursors.down)){dy=1}if(!dx&&!dy)return;this.kit.hero.x=Phaser.Math.Clamp(this.kit.hero.x+dx,0,spec.dungeon.size-1);this.kit.hero.y=Phaser.Math.Clamp(this.kit.hero.y+dy,0,spec.dungeon.size-1);this.kit.heroShape.setPosition(this.kit.ox+(this.kit.hero.x+.5)*this.kit.size,this.kit.oy+(this.kit.hero.y+.5)*this.kit.size);const hit=this.kit.enemies.findIndex((e:any)=>e.x===this.kit.hero.x&&e.y===this.kit.hero.y);if(hit>=0){this.kit.enemies[hit].hp-=spec.stats?.attack||1;if(this.kit.enemies[hit].hp<=0){this.kit.enemies.splice(hit,1);this.kit.enemyShapes[hit].destroy();this.kit.enemyShapes.splice(hit,1);this.score+=25}}if(!this.kit.enemies.length)this.finish("victory")}
+  createRacing(){this.physics.world.gravity.y=0;this.kit.lane=1;this.kit.progress=0;this.kit.lap=1;this.kit.speed=0;this.add.rectangle(W/2,H/2,540,H,0x30343b);for(const x of [W/2-90,W/2+90]){const line=this.add.rectangle(x,H/2,4,H,0xffffff).setAlpha(.3)}this.player=this.physics.add.sprite(W/2,H-100,"hero").setDisplaySize(34,58);this.kit.status=this.add.text(20,88,"",{fontFamily:"monospace",fontSize:"18px",color:"#fff"});this.updateRaceStatus()}
+  updateRacing(){if(this.cursors.up.isDown||this.keys.W.isDown)this.kit.speed=Math.min(spec.vehicle.maxSpeed,this.kit.speed+spec.vehicle.acceleration*.03);else this.kit.speed*=.985;if(Phaser.Input.Keyboard.JustDown(this.cursors.left))this.kit.lane=Math.max(0,this.kit.lane-1);if(Phaser.Input.Keyboard.JustDown(this.cursors.right))this.kit.lane=Math.min(spec.track.lanes-1,this.kit.lane+1);this.player.x=W/2+(this.kit.lane-1)*180;this.kit.progress+=this.kit.speed*.02;if(this.kit.progress>=100){this.kit.progress-=100;this.kit.lap++;if(this.kit.lap>spec.track.laps)return this.finish("victory")}if(spec.hazards.some((h:any)=>h.lane===this.kit.lane&&Math.abs(h.progress-this.kit.progress)<1)){this.kit.speed=0;this.score=Math.max(0,this.score-25)}this.score=Math.max(this.score,Math.floor((this.kit.lap-1)*100+this.kit.progress));this.updateRaceStatus()}
+  updateRaceStatus(){this.kit.status.setText("LAP "+this.kit.lap+"/"+spec.track.laps+"   SPEED "+this.kit.speed.toFixed(1)+"   PROGRESS "+Math.floor(this.kit.progress)+"%")}
+  createTennis(){this.physics.world.gravity.y=0;this.add.rectangle(W/2,H/2,4,H-120,0xffffff).setAlpha(.4);this.player=this.physics.add.sprite(55,H/2,"ground").setDisplaySize(16,110).setCollideWorldBounds(true);this.rival=this.physics.add.sprite(W-55,H/2,"ground").setDisplaySize(16,110).setCollideWorldBounds(true);this.ball=this.physics.add.sprite(W/2,H/2,"ball").setBounce(1,1).setCollideWorldBounds(true).setVelocity(270,160);this.physics.add.collider(this.ball,this.player);this.physics.add.collider(this.ball,this.rival)}
+  update(time:number){
+    this.frameCount++;if(Phaser.Input.Keyboard.JustDown(this.keys.R)){this.record("game.restarted");this.scene.restart();return}
+    if(spec.template==="snake")return this.updateSnake(time);
+    if(spec.template==="falling_blocks")return this.updateBlocks(time);
+    if(spec.template==="roguelike")return this.updateRoguelike();
+    if(spec.template==="racing")return this.updateRacing();
+    const body=this.player.body as Phaser.Physics.Arcade.Body,platformMode=["platformer","metroidvania"].includes(spec.template);body.setVelocityX(0);if(this.player.y>H+60)return this.finish("failure");
+    if(this.cursors.left.isDown||this.keys.A.isDown||this.touch.left)body.setVelocityX(-220);if(this.cursors.right.isDown||this.keys.D.isDown||this.touch.right)body.setVelocityX(220);if(this.textures.exists("generated-spritesheet")){const moving=Math.abs(body.velocity.x)+Math.abs(body.velocity.y)>5;this.player.play(moving?"walk":"idle",true);this.player.setFlipX(body.velocity.x<0)}
+    if(platformMode){const wantsJump=this.cursors.up.isDown||this.keys.W.isDown||this.keys.SPACE.isDown||this.touch.up||this.touch.action;if(wantsJump&&body.blocked.down){body.setVelocityY(-470);this.kit.airJump=true}else if(spec.template==="metroidvania"&&wantsJump&&this.kit.airJump&&this.kit.abilities?.has("double_jump")){body.setVelocityY(-430);this.kit.airJump=false}}else{body.setVelocityY(0);if(this.cursors.up.isDown||this.keys.W.isDown||this.touch.up)body.setVelocityY(-220);if(this.cursors.down.isDown||this.keys.S.isDown||this.touch.down)body.setVelocityY(220)}
+    if((spec.template==="tank"||spec.template==="shooter"||spec.template==="metroidvania")&&(this.keys.SPACE.isDown||this.touch.action))this.fire(time);
+    if(spec.template==="tennis"&&this.rival&&this.ball){this.rival.y=Phaser.Math.Linear(this.rival.y,this.ball.y,.035);if(this.ball.x<7||this.ball.x>W-7){const playerPoint=this.ball.x>W/2;this.kit.playerScore=(this.kit.playerScore||0)+(playerPoint?1:0);this.kit.rivalScore=(this.kit.rivalScore||0)+(playerPoint?0:1);if(this.kit.playerScore>=5)return this.finish("victory");if(this.kit.rivalScore>=5)return this.finish("failure");this.ball.setPosition(W/2,H/2).setVelocity(playerPoint?-270:270,160)}}
+  }
+  updateSnake(time:number){if(time<this.tick)return;this.tick=time+(spec.snake.speedMs||180);if(this.cursors.left.isDown&&this.direction.x!==1)this.direction={x:-1,y:0};if(this.cursors.right.isDown&&this.direction.x!==-1)this.direction={x:1,y:0};if(this.cursors.up.isDown&&this.direction.y!==1)this.direction={x:0,y:-1};if(this.cursors.down.isDown&&this.direction.y!==-1)this.direction={x:0,y:1};const head={x:this.snake[0].x+this.direction.x,y:this.snake[0].y+this.direction.y};if(head.x<0||head.y<0||head.x>=spec.grid.cols||head.y>=spec.grid.rows||this.snake.some(v=>v.x===head.x&&v.y===head.y))return this.finish("failure");this.snake.unshift(head);if(head.x===this.food.x&&head.y===this.food.y){this.score++;if(this.score>=10)return this.finish("victory");this.food={x:Phaser.Math.Between(0,spec.grid.cols-1),y:Phaser.Math.Between(0,spec.grid.rows-1)}}else this.snake.pop();this.children.removeAll();const s=Math.min(28,420/spec.grid.rows),ox=(W-spec.grid.cols*s)/2,oy=90;this.add.text(20,16,spec.title,{fontFamily:"monospace",fontSize:"22px",color:spec.art.palette[2]});for(const p of this.snake)this.add.rectangle(ox+p.x*s,oy+p.y*s,s-2,s-2,color(spec.art.palette[1])).setOrigin(0);this.add.circle(ox+(this.food.x+.5)*s,oy+(this.food.y+.5)*s,s*.35,color(spec.art.palette[2]))}
+}
+new Phaser.Game({type:Phaser.AUTO,parent:"game",width:W,height:H,backgroundColor:spec.art.palette[0],physics:{default:"arcade",arcade:{debug:false}},scene:[GeneratedGame],scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH}});
+`;
+  const runtimeSource = source
+    .replace(
+      "if(this.cursors.left.isDown&&this.direction.x!==1)",
+      "if((this.cursors.left.isDown||this.touch.left)&&this.direction.x!==1)",
+    )
+    .replace(
+      "if(this.cursors.right.isDown&&this.direction.x!==-1)",
+      "if((this.cursors.right.isDown||this.touch.right)&&this.direction.x!==-1)",
+    )
+    .replace(
+      "if(this.cursors.up.isDown&&this.direction.y!==1)",
+      "if((this.cursors.up.isDown||this.touch.up)&&this.direction.y!==1)",
+    )
+    .replace(
+      "if(this.cursors.down.isDown&&this.direction.y!==-1)",
+      "if((this.cursors.down.isDown||this.touch.down)&&this.direction.y!==-1)",
+    );
+  const tsconfig = {
+    compilerOptions: {
+      target: "ES2022",
+      module: "ESNext",
+      moduleResolution: "Bundler",
+      strict: true,
+      skipLibCheck: true,
+      resolveJsonModule: true,
+      allowSyntheticDefaultImports: true,
+      noEmit: true,
+    },
+    include: ["src/**/*.ts"],
+  };
+  const playwrightConfig = `import {defineConfig,devices} from "@playwright/test";export default defineConfig({testDir:"./tests",timeout:30000,retries:0,workers:1,use:{baseURL:"http://127.0.0.1:4173",headless:true,trace:"retain-on-failure",screenshot:"only-on-failure"},webServer:{command:"npm run preview -- --host 127.0.0.1 --port 4173",url:"http://127.0.0.1:4173",reuseExistingServer:false,timeout:30000},projects:[{name:"desktop",use:{...devices["Desktop Chrome"]}},{name:"mobile",use:{...devices["Pixel 7"]}}]});`;
+  const qaSource = `import {expect,test} from "@playwright/test";
+declare global{interface Window{__PLAYLOOP__:any;__PLAYLOOP_EVENTS__:string[]}}
+test("generated game lifecycle, input, visuals, performance and persistence",async({page},testInfo)=>{const errors:string[]=[];page.on("console",m=>{if(m.type()==="error")errors.push(m.text())});page.on("pageerror",e=>errors.push(e.message));const started=Date.now();await page.goto("/");const canvas=page.locator("canvas");await expect(canvas).toBeVisible();await page.waitForFunction(()=>!!window.__PLAYLOOP__);expect(Date.now()-started).toBeLessThan(${Number(spec.testing.maxLoadMs)});await expect(page.locator('[role="application"][aria-label]')).toBeVisible();await page.keyboard.press("ArrowRight");await expect.poll(()=>page.evaluate(()=>window.__PLAYLOOP__.events())).toContain("key:ArrowRight");const box=await canvas.boundingBox();if(!box)throw new Error("Canvas bounds unavailable");await page.mouse.click(box.x+box.width*(115/960),box.y+box.height*((540-55)/540));await expect.poll(()=>page.evaluate(()=>window.__PLAYLOOP__.events())).toContain("touch:right");const playing=await page.screenshot();expect(playing.byteLength).toBeGreaterThan(5000);await page.evaluate(()=>window.__PLAYLOOP__.lose());await expect.poll(()=>page.evaluate(()=>window.__PLAYLOOP__.state())).toBe("failure");const failed=await page.screenshot();expect(Buffer.compare(playing,failed)).not.toBe(0);await page.evaluate(()=>window.__PLAYLOOP__.restart());await page.waitForFunction(()=>window.__PLAYLOOP__?.state()==="playing");await page.evaluate(()=>window.__PLAYLOOP__.win());await expect.poll(()=>page.evaluate(()=>window.__PLAYLOOP__.state())).toBe("victory");expect(await page.evaluate(()=>window.__PLAYLOOP__.save()?.lastState)).toBe("victory");await page.reload();await page.waitForFunction(()=>!!window.__PLAYLOOP__);expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("playloop-save")||"null")?.lastState)).toBe("victory");await page.waitForTimeout(1100);const metrics=await page.evaluate(()=>window.__PLAYLOOP__.metrics());expect(metrics.fps).toBeGreaterThanOrEqual(${Number(spec.testing.minFps)});const memory=await page.evaluate(()=>{const value=(performance as any).memory?.usedJSHeapSize;return typeof value==="number"?value:null});if(memory!==null)expect(memory).toBeLessThan(256*1024*1024);expect(errors).toEqual([])});`;
+  return {
+    format: "playloop-project-v2",
+    engine: "phaser-3.90.0",
+    immutable: true,
+    assetRefs: spec.art.generated || {},
+    files: {
+      "package.json": safeJson(pkg),
+      "tsconfig.json": safeJson(tsconfig),
+      "game-spec.json": safeJson(spec),
+      "index.html": `<main id="game" role="application" aria-label="${String(spec.title).replace(/["<>&]/g, "")} playable game"></main><script type="module" src="/src/main.ts"></script>`,
+      "src/main.ts": runtimeSource,
+      "playwright.config.ts": playwrightConfig,
+      "tests/generated.spec.ts": qaSource,
+      "README.md": `# ${spec.title}\n\nGenerated by PlayLoop from a validated GameSpec. Includes genre-selected mechanics, collision physics, keyboard controls, and a responsive Phaser runtime. Run npm install, then npm run dev.`,
+    },
+  };
+}
+
+export function projectFingerprint(project) {
+  let h = 2166136261;
+  const text = JSON.stringify(project);
+  for (const c of text) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+export function generatePreviewHtml(spec) {
+  const data = safeJson(spec);
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:${spec.art.palette[0]};color:white;font:14px system-ui}canvas{width:100%;height:100%;display:block;image-rendering:pixelated}#hud{position:fixed;inset:12px 14px auto;display:flex;justify-content:space-between;pointer-events:none;font:700 12px monospace;text-shadow:0 2px #000}#help{position:fixed;inset:auto 14px 12px;text-align:center;color:#ffffffbb;font:11px monospace}</style></head><body><canvas id="game" width="960" height="540"></canvas><div id="hud"><span>${spec.title.replace(/[<>&]/g, "")}</span><span id="status">PLAYING</span></div><div id="help">ARROW KEYS / WASD · R RESTART</div><script>const spec=${data},canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),keys={},start={x:120,y:360},player={...start},target={x:790,y:130},began=performance.now();addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='r')restart()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);function notify(type,detail={}){parent.postMessage({source:'playloop-preview',type,detail},'*')}function restart(){player.x=start.x;player.y=start.y;document.getElementById('status').textContent='PLAYING';notify('game.restarted')}function drawWorld(){ctx.fillStyle=spec.art.palette[0];ctx.fillRect(0,0,960,540);ctx.globalAlpha=.2;ctx.fillStyle=spec.art.palette[1];for(let x=0;x<960;x+=64)for(let y=0;y<540;y+=64)ctx.fillRect(x+2,y+2,60,60);ctx.globalAlpha=1;ctx.fillStyle=spec.art.palette[2];if(spec.template==='racing'){ctx.fillStyle='#30343b';ctx.fillRect(180,0,600,540);ctx.setLineDash([30,25]);ctx.strokeStyle='#fff8';ctx.lineWidth=4;for(const x of [380,580]){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,540);ctx.stroke()}ctx.setLineDash([])}else if(spec.template==='snake'||spec.template==='falling_blocks'){ctx.strokeStyle='#ffffff18';for(let x=0;x<960;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,540);ctx.stroke()}for(let y=0;y<540;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(960,y);ctx.stroke()}}else{for(let i=0;i<8;i++)ctx.fillRect(210+i*82,390-(i%3)*75,64,18)}ctx.fillStyle=spec.art.palette[2];ctx.beginPath();ctx.arc(target.x,target.y,18,0,7);ctx.fill()}function loop(){const speed=4;if(keys.arrowleft||keys.a)player.x-=speed;if(keys.arrowright||keys.d)player.x+=speed;if(keys.arrowup||keys.w)player.y-=speed;if(keys.arrowdown||keys.s)player.y+=speed;player.x=Math.max(12,Math.min(928,player.x));player.y=Math.max(70,Math.min(505,player.y));drawWorld();ctx.fillStyle=spec.art.palette[1];ctx.fillRect(player.x-16,player.y-22,32,44);ctx.fillStyle='#fff';ctx.fillRect(player.x-8,player.y-14,5,5);ctx.fillRect(player.x+4,player.y-14,5,5);if(Math.hypot(player.x-target.x,player.y-target.y)<35){document.getElementById('status').textContent='VICTORY';notify('game.victory',{elapsed:performance.now()-began})}requestAnimationFrame(loop)}notify('preview.ready',{template:spec.template,title:spec.title});requestAnimationFrame(loop)</script></body></html>`;
+}
+
+export function enhancePreviewWithTouch(html) {
+  const controls =
+    '<div id="touch-controls" style="position:fixed;inset:auto 12px 12px;display:flex;justify-content:space-between;pointer-events:none"><div><button data-key="a">←</button><button data-key="d">→</button></div><div><button data-key="w">↑</button><button data-key=" ">●</button></div></div>';
+  const setup = `document.querySelectorAll('#touch-controls button').forEach(button=>{button.setAttribute('style','width:54px;height:54px;margin:4px;border:1px solid #fff8;border-radius:50%;background:#101522cc;color:white;font-size:22px;pointer-events:auto;touch-action:none');const key=button.dataset.key;for(const event of ['pointerdown','pointerenter'])button.addEventListener(event,e=>{if(e.buttons||event==='pointerdown'){e.preventDefault();keys[key]=true}});for(const event of ['pointerup','pointercancel','pointerleave'])button.addEventListener(event,()=>keys[key]=false)})`;
+  return html.replace("</body>", `${controls}<script>${setup}</script></body>`);
+}
+
+export function enhancePreviewWithGeneratedArt(html, spec) {
+  const generated = Object.fromEntries(
+    Object.entries(spec?.art?.generated || {}).filter(
+      ([, url]) => typeof url === "string" && url.startsWith("/api/assets?id="),
+    ),
+  );
+  if (!Object.keys(generated).length) return html;
+  const setup = `const generatedArt={};for(const[kind,url]of Object.entries(${safeJson(generated)})){const image=new Image();image.src=url;generatedArt[kind]=image}`;
+  return html
+    .replace("<script>", `<script>${setup}`)
+    .replace(
+      "ctx.fillRect(0,0,960,540);",
+      "ctx.fillRect(0,0,960,540);if(generatedArt.environment?.complete){ctx.globalAlpha=.72;ctx.drawImage(generatedArt.environment,0,0,960,540);ctx.globalAlpha=1}",
+    )
+    .replace(
+      "ctx.fillRect(player.x-16,player.y-22,32,44);",
+      "if(generatedArt.hero?.complete)ctx.drawImage(generatedArt.hero,player.x-24,player.y-28,48,56);else ctx.fillRect(player.x-16,player.y-22,32,44);",
+    );
+}
+
+export function validatePreviewArtifact(html) {
+  const errors = [];
+  if (!html.startsWith("<!doctype html>"))
+    errors.push("Missing document shell");
+  if (!html.includes("preview.ready")) errors.push("Missing runtime handshake");
+  if (!html.includes("game.victory") || !html.includes("game.restarted"))
+    errors.push("Missing lifecycle events");
+  if (/(?:src|href)=["']https?:\/\//i.test(html))
+    errors.push("External network reference detected");
+  if (html.length > 250000) errors.push("Preview exceeds size limit");
+  return { valid: errors.length === 0, errors };
+}

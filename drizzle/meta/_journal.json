@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1784416022075,
+      "tag": "0000_nappy_lucky_pierre",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1784417476395,
+      "tag": "0001_cultured_jackpot",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784438381804,
+      "tag": "0002_lethal_inhumans",
+      "breakpoints": true
+    }
+  ]
+}
